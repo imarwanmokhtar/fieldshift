@@ -106,10 +106,13 @@ class UiStyle:
         return "" if self.plain else PALETTE.get(role, "")
 
     def rich_theme(self) -> RichTheme:
-        styles = {name: PALETTE[name] for name in PALETTE if not self.plain}
+        if self.plain:
+            styles = {name: "" for name in PALETTE}
+        else:
+            styles = {name: PALETTE[name] for name in PALETTE}
         return RichTheme(styles)
 
-    def questionary_style(self) -> "questionary.Style":
+    def questionary_style(self) -> questionary.Style:
         if self.plain:
             return questionary.Style([])  # fall back to no custom colors
         return questionary.Style(

@@ -1,27 +1,34 @@
 """Theme unit tests (Phase 0 acceptance: badges + symbols render in all modes)."""
-import os
 
 import pytest
 from rich.text import Text
 
 from fieldshift.ui.theme import (
+    STATUS_SPEC,
     SYMBOLS_ASCII,
     SYMBOLS_UNICODE,
-    STATUS_SPEC,
     UiStyle,
 )
 
 
 def test_all_statuses_have_badge_words():
-    assert set(STATUS_SPEC) == {"verified", "extracted", "general_fact", "placeholder", "missing", "farmer"}
+    assert set(STATUS_SPEC) == {
+        "verified", "extracted", "general_fact", "placeholder",
+        "missing", "farmer",
+    }
     for word, _, _ in STATUS_SPEC.values():
         assert word  # every status is conveyed by a word, never by color alone
 
 
-@pytest.mark.parametrize("status", ["verified", "extracted", "general_fact", "placeholder", "missing", "farmer"])
+@pytest.mark.parametrize(
+    "status", ["verified", "extracted", "general_fact", "placeholder", "missing", "farmer"]
+)
 def test_badge_contains_word_in_every_mode(status):
     expected_word = STATUS_SPEC[status][0]
-    for ui in (UiStyle(plain=False), UiStyle(plain=True), UiStyle(ascii_symbols=True), UiStyle(plain=True, ascii_symbols=True)):
+    for ui in (
+        UiStyle(plain=False), UiStyle(plain=True),
+        UiStyle(ascii_symbols=True), UiStyle(plain=True, ascii_symbols=True),
+    ):
         t = ui.badge(status)
         assert isinstance(t, Text) and expected_word in t.plain
 
@@ -33,11 +40,13 @@ def test_badge_unknown_status_prints_a_word():
 
 def test_ascii_fallback_covers_every_symbol():
     assert set(SYMBOLS_ASCII) == set(SYMBOLS_UNICODE)
-    uni, asc = UiStyle(ascii_symbols=False).symbol("error"), UiStyle(ascii_symbols=True).symbol("error")
+    uni = UiStyle(ascii_symbols=False).symbol("error")
+    asc = UiStyle(ascii_symbols=True).symbol("error")
     assert uni == "✖" and asc == "x"
 
 
-def test_plain_mode_styles_are_empty_and_colored_mode_matches_palette():
+def test_plain_mode_styles_are_empty_and_colored_mode_matches_palette(monkeypatch):
+    monkeypatch.delenv("NO_COLOR", raising=False)
     ui = UiStyle(plain=True)
     assert ui.style("error") == "" and ui.style("brand") == ""
     assert UiStyle().style("error") == "#FF5F5F"

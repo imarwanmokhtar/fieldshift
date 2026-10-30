@@ -38,7 +38,7 @@ def load_raw(path: str):
     try:
         end = lines.index("-END HEADER-")
     except ValueError:
-        end = next(i for i, l in enumerate(lines) if "YEAR" in l.split(",")[:2])
+        end = next(i for i, ln in enumerate(lines) if "YEAR" in ln.split(",")[:2])
         header_lines = lines[:end]
     else:
         header_lines = lines[: end + 1]
@@ -51,7 +51,8 @@ def load_raw(path: str):
 def build_dates(df: pd.DataFrame) -> pd.DataFrame:
     if {"YEAR", "DOY"} <= set(df.columns):
         df["date"] = pd.to_datetime(
-            df["YEAR"].astype(str), format="%Y") + pd.to_timedelta(df["DOY"].astype(int) - 1, unit="D")
+            df["YEAR"].astype(str), format="%Y"
+        ) + pd.to_timedelta(df["DOY"].astype(int) - 1, unit="D")
     elif {"YEAR", "MO", "DY"} <= set(df.columns):
         df["date"] = pd.to_datetime(
             {"year": df["YEAR"], "month": df["MO"], "day": df["DY"]})
@@ -109,8 +110,12 @@ def main() -> int:
         warns.append("out_of_range:" + ",".join(oor))
     # V-POWER-008 complete years & record length
     yrs = sorted(df["date"].dt.year.unique())
-    complete_years = [int(y) for y in yrs
-                      if df["date"].dt.year.eq(y).sum() == (366 if __import__("calendar").isleap(y) else 365)]
+    complete_years = [
+        int(y)
+        for y in yrs
+        if df["date"].dt.year.eq(y).sum()
+        == (366 if __import__("calendar").isleap(y) else 365)
+    ]
     short = len(complete_years) < 5
     if short:
         warns.append("climate_short_record")
@@ -144,10 +149,11 @@ def main() -> int:
     rows = []
     d = clean.copy()
     d["date"] = pd.to_datetime(d["date"])
-    d["y"] = d["date"].dt.year; d["m"] = d["date"].dt.month
+    d["y"] = d["date"].dt.year
+    d["m"] = d["date"].dt.month
     for slot in ("winter", "summer"):
         months = {11, 12, 1, 2, 3, 4} if slot == "winter" else {5, 6, 7, 8, 9, 10}
-        starts = sorted({y for y, m in zip(d["y"], d["m"]) if m in months})
+        starts = sorted({y for y, m in zip(d["y"], d["m"], strict=False) if m in months})
         for ys in starts:
             mask = d["m"].isin(months)
             if slot == "winter":
@@ -158,7 +164,8 @@ def main() -> int:
             w = d[mask]
             if w.empty:
                 continue
-            n_days = len(w); n_missing = int((w["qc"] != "ok").sum())
+            n_days = len(w)
+            n_missing = int((w["qc"] != "ok").sum())
             import calendar as _cal
             expected = 181 + (1 if _cal.isleap(ys + 1) else 0) if slot == "winter" else 184
             # complete = fully inside the data period AND no missing values
@@ -184,7 +191,10 @@ def main() -> int:
     print("=" * 64)
     print("V-POWER VALIDATION REPORT —", RAW.replace("FieldShift_Data/", ""))
     print("=" * 64)
-    print(f"rows={len(df)}  span={df['date'].min().date()}..{df['date'].max().date()}  expected={span}")
+    print(
+        f"rows={len(df)}  span={df['date'].min().date()}.."
+        f"{df['date'].max().date()}  expected={span}"
+    )
     print(f"missing -999 per column: {miss_counts}")
     print(f"complete years ({len(complete_years)}): {complete_years}")
     print(f"header location: lat {hdr_lat} lon {hdr_lon} (requested {REQ_LAT}/{REQ_LON})")

@@ -40,3 +40,5 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "SIM", "UP", "RUF"]
+# unicode glyphs in SYMBOLS_UNICODE and badge labels are intentional, not typos
+ignore = ["RUF001", "RUF002", "RUF003"]

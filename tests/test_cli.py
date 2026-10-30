@@ -25,7 +25,10 @@ def test_theme_prints_badges_words_and_symbols():
         # palette roles and symbol names listed
         for role in ("brand", "muted", "nasa", "fao", "farmer", "estimate", "unknown"):
             assert role in out, (args, role)
-        for sym in ("ok", "error", "warning", "extracted", "general", "farmer", "pointer", "back", "other", "progress"):
+    for sym in (
+        "ok", "error", "warning", "extracted", "general", "farmer",
+        "pointer", "back", "other", "progress",
+    ):
             assert sym in out, (args, sym)
 
 
