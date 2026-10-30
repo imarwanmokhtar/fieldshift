@@ -1,0 +1,24 @@
+schema_version: 1
+# Indicator band cut-offs (CLAUDE.md Part 7.7) — heuristics, listed in the UI definitions.
+# Exposure indicators use the MEDIAN per crop window across years.
+note: "Heuristic band cut-offs; engine estimates only, never a yield forecast."
+heat_days:        {good_max: 2,   moderate_max: 10}
+cold_days:        {good_max: 5,   moderate_max: 20}
+frost_days:       {good_max: 0,   moderate_max: 3}
+temp_in_range_pct: {good_min: 70,  moderate_min: 40}
+days_above_tmax:  {good_max: 2,   moderate_max: 10}
+days_below_tmin:  {good_max: 0,   moderate_max: 3}
+
+# Relative water demand (etc_year_mm / max among compared strategies)
+water_demand_rel: {good_max: 0.75, moderate_max: 0.90}   # <=0.75 Good; 0.75-0.90 Moderate; >0.90 Poor; spread < 5% -> all "Similar"
+# Irrigation dependence bands (share of ETc met by rainfall)   >=75% low; 25-75% moderate; <25% high
+irrigation_dependence: {low_min_pct: 75, moderate_min_pct: 25}
+
+# Overall relative number display bands (internal numbers, shown as one band)
+overall: {good_min: 0.67, moderate_min: 0.34}            # >=0.67 Good; 0.34-0.67 Moderate; <0.34 Poor
+overall_too_close: 0.05      # adjacent strategies differing less -> "too close to call"
+min_data_weight_share: 0.50  # below -> "not enough data for an overall comparison"
+
+# Soil-fit heuristics (Part 7.5)
+ph_fit_within_units: 0.5     # pH distance outside the crop range -> Moderate instead of Poor
+salinity_mod_factor: 2.0     # EC <= thr Good; thr..2*thr Moderate; > 2*thr Poor

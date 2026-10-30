@@ -1,0 +1,13 @@
+schema_version: 1
+# Generic exposure thresholds for climate indicators (CLAUDE.md Part 7.3).
+# These are generic heuristics, NOT crop-specific values — the UI prints
+# "generic threshold" next to every exposure count.
+note: "Generic context thresholds (heuristics). A high hot-day count is a Delta summer norm, not a failed crop."
+hot_day_tmax_c: 35
+cold_day_tmin_c: 5
+frost_day_tmin_c: 0
+plausible:            # V-POWER plausibility ranges (same numbers as scripts/pre_engine_power_clean.py)
+  t_c: [-10, 55]
+  rain_mm_day: [0, 200]
+  solar_mj_m2_day: [0, 40]
+min_windows: 3        # fewer complete seasonal windows -> short_record flag

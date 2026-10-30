@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "source_id": "NASA_POWER_DAILY",
+  "url": "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,ALLSKY_SFC_SW_DWN&community=AG&longitude=31.38&latitude=31.04&start=20110101&end=20251231&format=CSV",
+  "method": "GET",
+  "http_status": 200,
+  "http_status_text": "OK",
+  "content_bytes": 205145,
+  "requested_at": "2026-10-30T13:08:12+03:00",
+  "requested_by": "pre-engine data sprint (curl), before fieldshift engine exists",
+  "parameters": [
+    "T2M",
+    "T2M_MAX",
+    "T2M_MIN",
+    "PRECTOTCORR",
+    "ALLSKY_SFC_SW_DWN"
+  ],
+  "community": "AG",
+  "format": "CSV",
+  "location": {
+    "latitude": 31.04,
+    "longitude": 31.38,
+    "crs": "EPSG:4326",
+    "role": "illustrative pilot point"
+  },
+  "period": {
+    "start": "20110101",
+    "end": "20251231"
+  },
+  "file": "raw/power/power_31.04_31.38_20110101_20251231_20261030.csv",
+  "sha256": "465e89e32f276647e840ab4f4e86bf3735dbd48a4e17cec2021a1fabd6a23390"
+}

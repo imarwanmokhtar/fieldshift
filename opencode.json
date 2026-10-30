@@ -1,0 +1,15 @@
+{
+  "mcp": {
+    "servers": {
+      "brave-devtools": {
+        "type": "local",
+        "command": [
+          "npx",
+          "-y",
+          "brave-mcp@latest",
+          "--autoConnect"
+        ]
+      }
+    }
+  }
+}

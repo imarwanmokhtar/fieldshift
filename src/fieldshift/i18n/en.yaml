@@ -1,0 +1,21 @@
+schema_version: 1
+language: en
+# All engine strings live here (Part 1.3) so Arabic can be added for the web app (i18n/ar.yaml later).
+string_note: "Add keys, do not reword the five challenge block names (Part 7.9)."
+strings:
+  disclaimer: "Supports, does not replace, farmer judgment and local expertise."
+  wording_rule_relative: "Relative comparison among these strategies in this data period — not a yield forecast."
+  guess_note: "A preliminary level, not a verdict; check the reasons and what to verify locally."
+  rule.family_repeat: "Same family in consecutive seasons: check pest/disease carry-over locally"
+  rule.legume_present: "Includes a nitrogen-fixing crop: possible nitrogen benefit, not quantified"
+  rule.bare_period: "A season with no crop: possible erosion or organic-matter loss; check local practice"
+  flag.coordinates_illustrative: "Pilot coordinates are illustrative — replace with your field location on first use."
+  flag.stage_split_assumed: "Growth stages assumed by a default split (no source row): timing estimates are rough."
+  flag.salinity_unassessed: "No field EC measurement — salinity fit is not assessed."
+  flag.soil_unknown: "No soil data for this point yet — soil-related indicators are unknown."
+  flag.short_record: "Fewer complete seasonal windows than recommended in the data period."
+  flag.et0_estimated: "ET0 estimated from temperatures (Hargreaves–Samani), not measured."
+  flag.rice_gross_water_underestimated: "Paddy percolation losses are not in the reference water need — real rice water use is higher."
+  flag.crop_not_in_reference: "That crop is not in the sourced reference table — indicators for it stay unknown."
+  flag.heuristic_band: "Band cut-offs are heuristics, not agronomic constants."
+  flag.priority_unscored: "This priority has no indicator attached in this version."

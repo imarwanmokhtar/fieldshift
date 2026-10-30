@@ -1,0 +1,24 @@
+schema_version: 1
+rules:
+- id: R_FAMILY_REPEAT
+  trigger: "same botanical family in consecutive seasons"
+  effect_if_supported: {score: -0.10, applies_to: soil_health}
+  note_key: "rule.family_repeat"     # "Same family in consecutive seasons: check pest/disease carry-over locally"
+  supported: false
+  evidence_needed: "extension or FAO source on pest/disease carry-over in same-family sequences"
+- id: R_LEGUME_PRESENT
+  trigger: "sequence includes a nitrogen-fixing crop (n_fixer = true)"
+  effect_if_supported: {score: +0.10, applies_to: soil_health}
+  note_key: "rule.legume_present"    # "Includes a nitrogen-fixing crop: possible nitrogen benefit, not quantified"
+  supported: false
+  evidence_needed: "FAO/extension source on nitrogen contribution of faba bean / berseem in Egyptian systems"
+- id: R_BARE_PERIOD
+  trigger: "a season slot is fallow or the crop window leaves months uncovered"
+  effect_if_supported: {score: -0.05, applies_to: soil_health}
+  note_key: "rule.bare_period"
+  supported: false
+  evidence_needed: "source linking bare periods to erosion/organic-matter loss under Delta conditions"
+- id: R_HIGH_WATER_SUMMER
+  trigger: "summer crop's estimated ETc is in the top tier of the compared strategies"
+  effect: "data-driven; handled by the water indicators, not a separate score"
+  supported: true

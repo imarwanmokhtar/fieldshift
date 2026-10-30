@@ -1,0 +1,2 @@
+[console_scripts]
+fieldshift = fieldshift.cli:app

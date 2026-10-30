@@ -1,0 +1,31 @@
+schema_version: 1
+data_root: "FieldShift_Data"
+
+# Pilot location [PPTX slide 3] — everything typed by the engine stays coordinates_illustrative
+pilot_point:
+  latitude: 31.04
+  longitude: 31.38
+  label: "Pilot point near Mansoura, Dakahlia (illustrative)"
+  coordinates_illustrative: true
+
+# Egypt sanity bounding box [DATA.md §2, approximate] — used for input confirmation, not validation verdicts
+egypt_bbox:
+  lat_min: 22.0
+  lat_max: 31.7
+  lon_min: 24.7
+  lon_max: 36.9
+
+# Season slots [DATA.md §7.2]
+slots:
+  winter: {months: [11, 12, 1, 2, 3, 4], label: "Winter Nov-Apr"}
+  summer: {months: [5, 6, 7, 8, 9, 10], label: "Summer May-Oct"}
+
+# Climate periods: default wizard slice and the fetched superset
+default_period: {start: 2020, end: 2025}   # wizard default: 6 years
+full_period: {start: 2011, end: 2025}      # POWER superset already fetched on 2026-10-30
+
+config_refs:
+  thresholds: "config/thresholds.yaml"     # Part 7.3 generic exposure thresholds
+  bands: "config/bands.yaml"               # Part 7.7 indicator band cut-offs
+
+i18n_file: "i18n/en.yaml"

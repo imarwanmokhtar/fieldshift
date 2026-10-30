@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "location_id": "31.04_31.38",
+  "source_type": "hwsd2",
+  "source_name": "FAO/IIASA HWSD v2.0",
+  "source_url": "https://www.fao.org/soils-portal/data-hub/soil-maps-and-databases/harmonized-world-soil-database-v20/en/",
+  "dataset_version": "2.0",
+  "retrieval_date": null,
+  "spatial_representation": "gridded",
+  "spatial_resolution": "1 km",
+  "selection_note": null,
+  "fields": {
+    "soil_texture":  {"v": null, "unit": "USDA class", "status": "missing"},
+    "soil_depth_cm": {"v": null, "unit": "cm", "status": "missing"},
+    "soil_ph":       {"v": null, "unit": "pH", "status": "missing"},
+    "organic_carbon":{"v": null, "unit": "<as in source>", "status": "missing"},
+    "available_water_capacity": {"v": null, "unit": "<as in source>", "status": "missing"},
+    "soil_ec_dsm":   {"v": null, "unit": "dS/m", "status": "missing"}
+  },
+  "limitations": "Regional estimate. Salinity needs field EC measurement. NO VALUES YET: the HWSD raster/database has not been extracted for the pilot point (human task per DATA.md §6.3). The engine must report this location as soil=unknown with flags soil_unknown and salinity_unassessed."
+}

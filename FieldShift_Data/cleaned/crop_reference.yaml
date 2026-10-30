@@ -1,0 +1,172 @@
+schema_version: 2
+generated_by: "FieldShift data sprint (AI-assisted fetch + verification), session 2026-10-30"
+generated_on: "2026-10-30"
+location_note: "Sowing windows and durations reference Egypt (Delta where available). Pilot location 31.04N 31.38E is coordinates_illustrative; local verification is part of 'check locally'."
+verification_extract: "FieldShift_Data/raw/crops/crop_table_verification_extract_20261030.md"
+
+sources:
+  FAO56_T11: "FAO Irrigation and Drainage Paper 56, Ch.6, Table 11 (lengths of crop development stages) https://www.fao.org/4/x0490e/x0490e0b.htm — FETCHED & VERIFIED 2026-10-30 (artifact raw/crops/fao56_ch6_tables11_12_fetched_20261030.txt, sha256 36199f...c4). Table 11 states values are 'a general guide and for comparison purposes'. Stray footnote digits in the printed table are documented in the extract."
+  FAO56_T12: "FAO-56, Ch.6, Table 12 (single crop coefficients Kc), same URL & artifact — VERIFIED 2026-10-30. Ranges printed for Kc mid/end (e.g. 0.60-0.35 + footnote digit) are recorded in notes; the first printed value is used."
+  FAO29_T4: "FAO Irrigation and Drainage Paper 29 Rev.1 (Ayers & Westcot 1985), Table 4 'Crop tolerance and yield potential ... (ECw) or soil salinity (ECe)' https://www.fao.org/4/T0234e/T0234E03.htm — FETCHED & VERIFIED 2026-10-30 (artifact raw/crops/fao29_rev1_salt_tolerance_20261030.htm). ECe values below are the 100%-yield thresholds (dS/m, saturated soil-paste extract). Berseem has NO numeric row there; sec.5 lists 'Clover, Berseem' qualitatively as moderately sensitive."
+  FAO_WATER_T5: "FAO Irrigation Water Management Training manual, Ch.2 Table 5 'Approximate values of seasonal crop water needs' https://www.fao.org/4/S2022E/s2022e02.htm — FETCHED 2026-10-30 (artifact raw/crops/fao_water_manual/fao_water_manual_s2022e02_20261030.htm). mm per total growing period; berseem row absent."
+  FAO_WATER_T14: "FAO Irrigation Water Management Training manual, Ch.3 Table 14 'Indicative values of crop water needs and sensitivity to drought' https://www.fao.org/4/S2022E/s2022e07.htm — FETCHED 2026-10-30 (artifact fao_water_manual_s2022e07_20261030.htm). Compound classes are collapsed into low|medium|high by the documented rule under drought_class_mapping."
+  FAO33_VIA66: "FAO Irrigation and Drainage Paper 66 (Steduto et al. 2012), Ch.2 Table 1 'Seasonal Ky values from FAO I&D Paper No. 33 (Doorenbos & Kassam 1979)' https://www.fao.org/4/i2800e/i2800e02.pdf — numeric Ky evidence quoted in drought_sensitivity notes; contains no rice row."
+  FAO_CROP_CAL: "FAO crop calendar for Egypt, agro-ecological zones, lastUpdated 2021-02-26 — DHLG API https://api-cropcalendar.apps.fao.org/api/v1/countries/EG/cropCalendar?language=en (artifact raw/crops/fao_dhlg_cropcalendar_egy_20261030.json), cross-checked against the FAO data-catalog export (artifact fao_crop_calendar_by_country_all_20261030.csv); the two agree."
+  ECOCROP_MIRROR: "EcoCrop crop database mirror https://github.com/OpenCLIM/ecocrop (EcoCrop_DB.csv, sha256 4187e8...06), column units confirmed via Ecocrop_variable_lookup.csv (temperatures degC; pH unitless; KTMP = killing temperature early growth). Software licence OGL-UK-3.0 per CITATION.cff (DOI 10.5281/zenodo.10843625); underlying FAO EcoCrop data licence still to be checked by a human."
+  FAO_I3500E: "FAO 'Egyptian Clover — King of Forage Crops' (Dost, Attia, Hazzaa, Khidr & Sany 2014, doc i3500e) https://openknowledge.fao.org/server/api/core/bitstreams/947fa627-c9f2-4f67-b725-e0ef30d220c7/content — FETCHED 2026-10-30 (artifact raw/crops/fao_i3500e_berseem_20261030.pdf); pages cited in notes are the 1-based PDF pages."
+  GIEWS_EGY_BRIEF: "FAO GIEWS Country Brief, Arab Republic of Egypt, Reference Date 30-06-2026 https://cb.apps.fao.org/country/EGY/pdf/EGY.pdf — FETCHED 2026-10-30 (artifact giews_egy_country_brief_20261030.pdf). Observation: 'sowing operations for the 2026 rice and maize crops also began in May'."
+  MAIZE_STUDY: "Hegab, Fayed, Hamada et al. 2019, Arab Universities Journal of Agricultural Sciences, 'Growth parameters, irrigation requirements and productivity of maize in relation to sowing dates under North-Delta of Egypt conditions', DOI 10.21608/ajs.2019.43523 — sowing-date trial at El-Bosaily (Northern Coastal Egypt): 1 May / 1 June / 1 July; productivity and WUE decreased as sowing delayed beyond 1 May. PDF could not be archived (HTTP 429); abstract snapshot logged in metadata/retrieval_log.jsonl."
+  GENERAL: "General agronomic knowledge written by the AI assistant — NOT from a fetched source. Used only for botanical family, n_fixer and fallow."
+
+slots:
+  winter: {months: [11,12,1,2,3,4], label: "Winter Nov-Apr"}
+  summer: {months: [5,6,7,8,9,10], label: "Summer May-Oct"}
+
+defaults:
+  stage_split_if_missing: {ini: 0.15, dev: 0.25, mid: 0.40, late: 0.20}   # ENGINE ASSUMPTION, flag stage_split_assumed
+
+drought_class_mapping:
+  rule: "FAO water manual Ch.3 Table 14 prints compound classes. The engine collapses each compound class to its MORE-SENSITIVE bound so water-short warnings stay on the safe side."
+  printed_to_enum:
+    low: low
+    low-medium: medium
+    medium: medium
+    medium-high: high
+    high: high
+
+crops:
+- crop_id: wheat
+  names: {en: Wheat, ar: قمح, scientific: Triticum aestivum}
+  category: cereal
+  family: {v: Poaceae, src: GENERAL, status: general_fact}
+  n_fixer: {v: false, src: GENERAL, status: general_fact}
+  usual_slot: winter
+  sowing_window: {v: {start: "11-15", end: "11-30"}, unit: "MM-DD", src: FAO_CROP_CAL, status: extracted, note: "Delta region session (also NDRNRL/NDRORL): sowing 11-15 to 11-30, harvest 04-25 to 05-25 (lastUpdated 2021-02-26)."}
+  growth_duration_days: {v: 160, unit: days, src: FAO56_T11, status: extracted, note: "Row 'Barley/Oats/Wheat' 20/50/60/30 = 160 (Dec, Calif. Desert) — an ARID ANALOGUE, not Egypt. FAO calendar Egypt Delta growing_period is 150-190 days: the analogue value sits inside it; local verification advised."}
+  stage_days: {v: {ini: 20, dev: 50, mid: 60, late: 30}, unit: days, src: FAO56_T11, status: extracted, note: "Stages sum to 160 = growth_duration_days."}
+  kc: {v: {ini: 0.30, mid: 1.15, end: 0.25}, unit: "-", src: FAO56_T12, status: extracted, note: "Cereal-group Kc ini 0.3; Kc end printed 0.25-0.40 (footnote digit merged as '0.25-0.410'); FAO-56 also prints 0.4/0.7 for winter-wheat Kc ini (frozen/non-frozen soils); Kc ini depends on wetting frequency (FAO-56 Ch.7)."}
+  water_requirement_mm_ref: {v: {min: 450, max: 650}, unit: "mm/season", src: FAO_WATER_T5, status: extracted, note: "Row 'Barley/Oats/Wheat 450-650' (mm/total growing period)."}
+  temperature_c: {v: {topmn: 15.0, topmx: 23.0, tmin: 5.0, tmax: 27.0, ktmp: 0.0}, unit: "°C", src: ECOCROP_MIRROR, status: extracted, note: "T. aestivum row; killing temperature EARLY GROWTH (KTMP) = 0; KTMPR (during rest) = -20 (kept in note only)."}
+  drought_sensitivity: {v: medium, unit: "low|medium|high", src: FAO_WATER_T14, status: extracted, note: "Table 14 prints 'low-medium' → collapsed to 'medium' (more-sensitive bound; drought_class_mapping). FAO-66 Table 1 seasonal Ky = 1.05 (winter wheat) / 1.15 (spring wheat)."}
+  salinity_threshold_ece_dsm: {v: 6.0, unit: "dS/m", src: FAO29_T4, status: extracted, note: "100%-yield ECe threshold; durum wheat row = 5.7. Table also carries footnote digits ('4 , 6') at the wheat row — source-data artifacts."}
+  soil_ph_range: {v: {ph_min: 5.5, ph_max: 8.5, ph_opt_min: 6.0, ph_opt_max: 7.0}, unit: pH, src: ECOCROP_MIRROR, status: extracted}
+
+- crop_id: maize
+  names: {en: Maize, ar: ذرة شامية, scientific: Zea mays}
+  category: cereal
+  family: {v: Poaceae, src: GENERAL, status: general_fact}
+  n_fixer: {v: false, src: GENERAL, status: general_fact}
+  usual_slot: summer
+  sowing_window: {v: {start: "05-01", end: "07-01"}, unit: "MM-DD", src: MAIZE_STUDY, status: extracted, note: "North-Delta sowing-date trial (El-Bosaily): 1 May / 1 June / 1 July; later sowing gave lower productivity and WUE. GIEWS brief corroborates ('maize sowing began in May', 2026). Window END = latest TRIAL date, not an observed full window; no grain-maize row in either FAO calendar (only 'Corn, sweet' 02-20..10-15, growing 75-100 d). Verify locally."}
+  growth_duration_days: {v: 150, unit: days, src: FAO56_T11, status: extracted, note: "Row 'Maize (grain)' 30/40/50/30 = 150 (April, Spain/Calif.) — not Egypt-specific; FAO calendar has no Egypt grain-maize row; sweet-corn row suggests 75-100 d cycles. Local verification needed."}
+  stage_days: {v: {ini: 30, dev: 40, mid: 50, late: 30}, unit: days, src: FAO56_T11, status: extracted, note: "Stages sum to 150 = growth_duration_days."}
+  kc: {v: {ini: 0.30, mid: 1.20, end: 0.60}, unit: "-", src: FAO56_T12, status: extracted, note: "Printed '0.60-0.3511' = end value 0.60 (harvest at high grain moisture) or 0.35 (field-dried; footnote 11)."}
+  water_requirement_mm_ref: {v: {min: 500, max: 800}, unit: "mm/season", src: FAO_WATER_T5, status: extracted}
+  temperature_c: {v: {topmn: 18.0, topmx: 33.0, tmin: 10.0, tmax: 47.0, ktmp: null}, unit: "°C", src: ECOCROP_MIRROR, status: extracted, note: "ktmp absent in the mirror row (null); other four extracted."}
+  drought_sensitivity: {v: high, unit: "low|medium|high", src: FAO_WATER_T14, status: extracted, note: "Printed 'medium-high' → collapsed to 'high' (more-sensitive bound). FAO-66 Table 1 seasonal Ky = 1.25 supports greater-than-proportional yield loss."}
+  salinity_threshold_ece_dsm: {v: 1.7, unit: "dS/m", src: FAO29_T4, status: extracted, note: "100%-yield ECe; fao-29 row 'Corn (maize) (Zea mays) 1.7'."}
+  soil_ph_range: {v: {ph_min: 4.5, ph_max: 8.5, ph_opt_min: 5.0, ph_opt_max: 7.0}, unit: pH, src: ECOCROP_MIRROR, status: extracted}
+
+- crop_id: rice
+  names: {en: Rice, ar: أرز, scientific: Oryza sativa}
+  category: cereal
+  family: {v: Poaceae, src: GENERAL, status: general_fact}
+  n_fixer: {v: false, src: GENERAL, status: general_fact}
+  usual_slot: summer
+  sowing_window: {v: {start: "04-20", end: "05-10"}, unit: "MM-DD", src: FAO_CROP_CAL, status: extracted, note: "Only FAO-calendar rice session for Egypt is Middle Egypt Region ('Fayoum'): sowing 04-20..05-10, harvest 08-01..09-30. NO Delta-region row in either FAO calendar — verify Delta dates locally (rice is grown in the Delta in practice; GIEWS 'rice sowing began in May' 2026)."}
+  growth_duration_days: {v: 150, unit: days, src: FAO56_T11, status: extracted, note: "Row 'Rice' 30/30/60/30 = 150 (Tropics/Mediterranean). FAO calendar Egypt (Fayoum) growing_period 120-150 — analogue value at the top of the range; local check advised."}
+  stage_days: {v: {ini: 30, dev: 30, mid: 60, late: 30}, unit: days, src: FAO56_T11, status: extracted, note: "Stages sum to 150 = growth_duration_days."}
+  kc: {v: {ini: 1.05, mid: 1.20, end: 0.90}, unit: "-", src: FAO56_T12, status: extracted, note: "Kc end 0.90 or 0.60. Flooded paddy: FAO manual Ch.4 (SAT=200 mm, PERC 4-8 mm/d) — ETc EXCLUDES percolation/seepage/puddling water, so gross water need is higher; engine must flag rice_gross_water_underestimated."}
+  water_requirement_mm_ref: {v: {min: 450, max: 700}, unit: "mm/season", src: FAO_WATER_T5, status: extracted, note: "Row 'Rice (paddy) 450-700'. Does not include paddy percolation losses."}
+  temperature_c: {v: {topmn: 20.0, topmx: 30.0, tmin: 10.0, tmax: 36.0, ktmp: null}, unit: "°C", src: ECOCROP_MIRROR, status: extracted, note: "ktmp absent in the mirror row (null)."}
+  drought_sensitivity: {v: high, unit: "low|medium|high", src: FAO_WATER_T14, status: extracted, note: "Table 14 prints 'high'. FAO-66 Table 1 lists NO rice row; paddy percolation losses (manual Ch.4) raise practical sensitivity further."}
+  salinity_threshold_ece_dsm: {v: 3.0, unit: "dS/m", src: FAO29_T4, status: extracted, note: "100%-yield ECe; row 'Rice (paddy) (Oriza sativa) 3.0' (species typo in source)."}
+  soil_ph_range: {v: {ph_min: 4.5, ph_max: 9.0, ph_opt_min: 5.5, ph_opt_max: 7.0}, unit: pH, src: ECOCROP_MIRROR, status: extracted}
+
+- crop_id: cotton
+  names: {en: Cotton, ar: قطن, scientific: Gossypium barbadense}
+  category: fibre
+  family: {v: Malvaceae, src: GENERAL, status: general_fact}
+  n_fixer: {v: false, src: GENERAL, status: general_fact}
+  usual_slot: summer
+  sowing_window: {v: {start: "03-01", end: "05-31"}, unit: "MM-DD", src: FAO56_T11, status: extracted, note: "FAO-56 Table 11 Egypt-labelled cotton row: plant date 'Mar-May' (month granularity only; day-level bounds are a mechanical expansion). Neither FAO calendar has an Egypt cotton row. EcoCrop GMIN/GMAX for G. barbadense = 180-210 d matches the FAO-56 195 d total."}
+  growth_duration_days: {v: 195, unit: days, src: FAO56_T11, status: extracted, note: "Row 'Cotton' 30/50/60/55 = 195, plant date 'Mar-May', source location 'Egypt; Pakistan; Calif.' — the only Egypt-labelled FAO-56 stage row."}
+  stage_days: {v: {ini: 30, dev: 50, mid: 60, late: 55}, unit: days, src: FAO56_T11, status: extracted, note: "Stages sum to 195 = growth_duration_days."}
+  kc: {v: {ini: 0.35, mid: 1.15, end: 0.70}, unit: "-", src: FAO56_T12, status: extracted, note: "Kc mid printed 1.15-1.20; Kc end printed 0.70-0.50; first printed value of each used."}
+  water_requirement_mm_ref: {v: {min: 700, max: 1300}, unit: "mm/season", src: FAO_WATER_T5, status: extracted}
+  temperature_c: {v: {topmn: 22.0, topmx: 32.0, tmin: 15.0, tmax: 38.0, ktmp: null}, unit: "°C", src: ECOCROP_MIRROR, status: extracted, note: "G. barbadense (Egyptian long-staple) row; ktmp absent in the mirror row (null)."}
+  drought_sensitivity: {v: low, unit: "low|medium|high", src: FAO_WATER_T14, status: extracted, note: "Table 14 prints 'low'. FAO-66 Table 1 seasonal Ky = 0.85 (sub-proportional yield loss)."}
+  salinity_threshold_ece_dsm: {v: 7.7, unit: "dS/m", src: FAO29_T4, status: extracted, note: "100%-yield ECe — BUT the FAO-29 row is Gossypium hirsutum (upland cotton); the value has not been verified for G. barbadense. Also listed in sec.5 'tolerant' group."}
+  soil_ph_range: {v: {ph_min: 5.0, ph_max: 8.5, ph_opt_min: 5.2, ph_opt_max: 7.2}, unit: pH, src: ECOCROP_MIRROR, status: extracted}
+
+- crop_id: sugar_beet
+  names: {en: Sugar beet, ar: بنجر السكر, scientific: Beta vulgaris}
+  category: root_sugar
+  family: {v: Amaranthaceae, src: GENERAL, status: general_fact}
+  n_fixer: {v: false, src: GENERAL, status: general_fact}
+  usual_slot: winter
+  sowing_window: {v: {start: "10-01", end: "10-20"}, unit: "MM-DD", src: FAO_CROP_CAL, status: extracted, note: "Delta region session (also NDRNRL/NDRORL): sowing 10-01..10-20, harvest 04-10..05-01."}
+  growth_duration_days: {v: 205, unit: days, src: FAO56_T11, status: extracted, note: "Row 'Sugar beet' 35/60/70/40 = 205 (Nov, Arid Regions) — sits slightly ABOVE the Egypt FAO-calendar range 170-200 d (Delta); local verification advised."}
+  stage_days: {v: {ini: 35, dev: 60, mid: 70, late: 40}, unit: days, src: FAO56_T11, status: extracted, note: "Stages sum to 205 = growth_duration_days."}
+  kc: {v: {ini: 0.35, mid: 1.20, end: 0.70}, unit: "-", src: FAO56_T12, status: extracted, note: "Kc end printed with a footnote marker ('0.705' = 0.70 + fn.5); FAO-56 Ch.6 gives conditions for other end values."}
+  water_requirement_mm_ref: {v: {min: 550, max: 750}, unit: "mm/season", src: FAO_WATER_T5, status: extracted}
+  temperature_c: {v: {topmn: 15.0, topmx: 25.0, tmin: 4.0, tmax: 35.0, ktmp: 0.0}, unit: "°C", src: ECOCROP_MIRROR, status: extracted, note: "B. vulgaris row; KTMP (early growth) = 0, KTMPR (during rest) = -3 (kept in note only)."}
+  drought_sensitivity: {v: medium, unit: "low|medium|high", src: FAO_WATER_T14, status: extracted, note: "Printed 'low-medium' → collapsed to 'medium' (more-sensitive bound). FAO-66 Table 1 seasonal Ky = 1.0."}
+  salinity_threshold_ece_dsm: {v: 7.0, unit: "dS/m", src: FAO29_T4, status: extracted, note: "100%-yield ECe (footnote 5 digit at the source row). Also listed in sec.5 'tolerant' group."}
+  soil_ph_range: {v: {ph_min: 5.5, ph_max: 7.5, ph_opt_min: 6.0, ph_opt_max: 7.0}, unit: pH, src: ECOCROP_MIRROR, status: extracted}
+
+- crop_id: faba_bean
+  names: {en: Faba bean, ar: فول بلدي, scientific: Vicia faba}
+  category: legume
+  family: {v: Fabaceae, src: GENERAL, status: general_fact}
+  n_fixer: {v: true, src: GENERAL, status: general_fact}
+  usual_slot: winter
+  sowing_window: {v: {start: "10-01", end: "11-15"}, unit: "MM-DD", src: FAO_CROP_CAL, status: extracted, note: "Delta region session (also NDRNRL/NDRORL) for 'Bean, broad': sowing 10-01..11-15, harvest 04-15..05-01."}
+  growth_duration_days: {v: 185, unit: days, src: FAO_CROP_CAL, status: extracted, note: "FAO calendar Delta growing_period '180 - 190' days; 185 = midpoint (no stage split given). EcoCrop GMIN/GMAX = 100-150 d is clearly shorter — EcoCrop spans global varieties; Egypt-specific value preferred."}
+  stage_days: {v: null, unit: days, src: FAO_CROP_CAL, status: missing, note: "No FAO-56 Table 11 row and no stage split in the FAO calendar; engine will use defaults.stage_split_if_missing and flag stage_split_assumed."}
+  kc: {v: {ini: 0.50, mid: 1.15, end: 0.30}, unit: "-", src: FAO56_T12, status: extracted, note: "'Fababean (broad bean) — Dry/Seed' row; fresh crop Kc end 1.10."}
+  water_requirement_mm_ref: {v: {min: 300, max: 500}, unit: "mm/season", src: FAO_WATER_T5, status: extracted, note: "Row 'Bean 300-500' — the manual's Bean row does not separate faba from Phaseolus beans; treat as a reference band, not a faba-specific measurement."}
+  temperature_c: {v: {topmn: 18.0, topmx: 28.0, tmin: 5.0, tmax: 32.0, ktmp: null}, unit: "°C", src: ECOCROP_MIRROR, status: extracted, note: "ktmp absent in the mirror row (null)."}
+  drought_sensitivity: {v: high, unit: "low|medium|high", src: FAO_WATER_T14, status: extracted, note: "Row 'Bean 300-500': printed 'medium-high' → collapsed to 'high' (more-sensitive bound; the row does not separate faba from Phaseolus). FAO-66 Table 1 'Beans' seasonal Ky = 1.15."}
+  salinity_threshold_ece_dsm: {v: 1.5, unit: "dS/m", src: FAO29_T4, status: extracted, note: "Row 'Broadbean (Vicia faba) 1.5' — CORRECTS the earlier hand-over placeholder of 1.6 (recalled, unverified)."}
+  soil_ph_range: {v: {ph_min: 4.5, ph_max: 8.6, ph_opt_min: 6.0, ph_opt_max: 7.0}, unit: pH, src: ECOCROP_MIRROR, status: extracted}
+
+- crop_id: berseem
+  names: {en: Berseem clover, ar: برسيم, scientific: Trifolium alexandrinum}
+  category: forage_legume
+  family: {v: Fabaceae, src: GENERAL, status: general_fact}
+  n_fixer: {v: true, src: GENERAL, status: general_fact}
+  usual_slot: winter
+  sowing_window: {v: {start: "09-15", end: "11-30"}, unit: "MM-DD", src: FAO_I3500E, status: extracted, note: "p.66 (1-based): 'In Egypt farmers sow berseem from mid September till late November.' Agronomy chapter (printed p.26) recommends 'late September to end of October' with seed rate 20-25 kg/ha; NFCRP yield effects recorded on the same pages. berseem_multicut_timing flag applies."}
+  growth_duration_days: {v: 200, unit: days, src: FAO_I3500E, status: placeholder, note: "Multi-cut forage; the source prints a SPAN, not a day count: 'Berseem grows during the entire winter from October to May' (printed p.32). 200 is a book-derived stand-in; not in FAO-56 Table 11 and no FAO-calendar row. Must be confirmed by a human (full-season vs short-season cuts)." }
+  stage_days: {v: null, unit: days, src: FAO_I3500E, status: missing, note: "Multi-cut forage with Kc-averaged cutting effects (FAO-56); no stage split applies. Engine will use defaults.stage_split_if_missing and flag stage_split_assumed."}
+  kc: {v: {ini: 0.40, mid: 0.90, end: 0.85}, unit: "-", src: FAO56_T12, status: extracted, note: "'Clover hay, Berseem — averaged cutting effects' row. Individual cutting periods print 0.40 / 1.15 / 1.10."}
+  water_requirement_mm_ref: {v: null, unit: "mm/season", src: FAO_WATER_T5, status: missing, note: "Berseem row ABSENT from manual Table 5; i3500e prints water-use figures but no mm/season total. Stays missing until a human supplies a citable Egyptian figure."}
+  temperature_c: {v: {topmn: 16.0, topmx: 27.0, tmin: 3.0, tmax: 35.0, ktmp: -2.0}, unit: "°C", src: ECOCROP_MIRROR, status: extracted, note: "T. alexandrinum row; KTMP (early growth) = -2, KTMPR (during rest) = -8 (note only)."}
+  drought_sensitivity: {v: null, unit: "low|medium|high", src: FAO_WATER_T14, status: missing, note: "Berseem absent from manual Table 14 and from FAO-66 Table 1 (no Ky row); no citable class found in i3500e. Stays missing."}
+  salinity_threshold_ece_dsm: {v: null, unit: "dS/m", src: FAO29_T4, status: missing, note: "FAO-29 sec.5 lists 'Clover, Berseem (Trifolium alexandrinum)' in the MODERATELY SENSITIVE group qualitatively; the numeric ECe table has NO berseem row. EcoCrop 'absolute soil salinity = high (>10 dS/m)' is a different definition — do not mix."}
+  soil_ph_range: {v: {ph_min: 4.9, ph_max: 7.5, ph_opt_min: 6.5, ph_opt_max: 7.0}, unit: pH, src: ECOCROP_MIRROR, status: extracted}
+
+- crop_id: sorghum
+  names: {en: Sorghum, ar: ذرة رفيعة, scientific: Sorghum bicolor}
+  category: cereal
+  family: {v: Poaceae, src: GENERAL, status: general_fact}
+  n_fixer: {v: false, src: GENERAL, status: general_fact}
+  usual_slot: summer
+  sowing_window: {v: {start: "05-10", end: "06-01"}, unit: "MM-DD", src: FAO_CROP_CAL, status: extracted, note: "Middle Egypt session ('Giza, Fayoum and Beni Sweaf'): sowing 05-10..06-01, harvest 09-15..10-01. Upper Egypt (Assuit, Qena, Sohag) is later: 06-01..06-25. No Delta row in either FAO calendar."}
+  growth_duration_days: {v: 130, unit: days, src: FAO56_T11, status: extracted, note: "Row 'Sorghum' 20/35/45/30 = 130 (Mar/April, Arid Region) — the printed total '140' contradicts its own stages (source-table inconsistency; a second row 20/35/40/30 = 130 also exists). FAO calendar Egypt growing_period 110-130 d contains the value."}
+  stage_days: {v: {ini: 20, dev: 35, mid: 45, late: 30}, unit: days, src: FAO56_T11, status: extracted, note: "Stages sum to 130 = growth_duration_days (printed total 140 ignored; see note on growth_duration_days)."}
+  kc: {v: {ini: 0.30, mid: 1.00, end: 0.55}, unit: "-", src: FAO56_T12, status: extracted, note: "Grain sorghum: Kc mid printed 1.00-1.10; sweet sorghum 1.20 / end 1.05."}
+  water_requirement_mm_ref: {v: {min: 450, max: 650}, unit: "mm/season", src: FAO_WATER_T5, status: extracted, note: "Row 'Sorghum/Millet 450-650'."}
+  temperature_c: {v: {topmn: 22.0, topmx: 35.0, tmin: 8.0, tmax: 40.0, ktmp: null}, unit: "°C", src: ECOCROP_MIRROR, status: extracted, note: "S. bicolor row; ktmp absent in the mirror row (null)."}
+  drought_sensitivity: {v: low, unit: "low|medium|high", src: FAO_WATER_T14, status: extracted, note: "Row 'Sorghum/Millet': printed 'low'. FAO-66 Table 1 seasonal Ky = 0.9."}
+  salinity_threshold_ece_dsm: {v: 6.8, unit: "dS/m", src: FAO29_T4, status: extracted, note: "100%-yield ECe. Listed in sec.5 'tolerant' group."}
+  soil_ph_range: {v: {ph_min: 5.0, ph_max: 8.0, ph_opt_min: 5.5, ph_opt_max: 7.5}, unit: pH, src: ECOCROP_MIRROR, status: extracted}
+
+- crop_id: fallow
+  names: {en: Fallow / bare, ar: بور, scientific: null}
+  category: fallow
+  family: {v: null, src: GENERAL, status: general_fact}
+  n_fixer: {v: false, src: GENERAL, status: general_fact}
+  usual_slot: any
+  note: "No crop. Zero crop water use by definition; counts as a bare period for the bare-field note."

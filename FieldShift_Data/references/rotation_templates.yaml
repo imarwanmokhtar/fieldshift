@@ -1,0 +1,24 @@
+schema_version: 1
+status: illustrative_for_review
+slots_per_year: [winter, summer]
+templates:
+- id: wheat_maize
+  name: {en: "Wheat → Maize"}
+  sequence: [{slot: winter, crop: wheat}, {slot: summer, crop: maize}]
+  hypothesis: "Two cereals per year (same botanical family in both seasons)."
+- id: faba_maize
+  name: {en: "Faba bean → Maize"}
+  sequence: [{slot: winter, crop: faba_bean}, {slot: summer, crop: maize}]
+  hypothesis: "A winter legume before a summer cereal; test for water use and soil-related indicators."
+- id: berseem_cotton
+  name: {en: "Berseem → Cotton"}
+  sequence: [{slot: winter, crop: berseem}, {slot: summer, crop: cotton}]
+  hypothesis: "Winter forage legume then a fibre crop; cotton sowing overlaps late winter."
+- id: wheat_rice
+  name: {en: "Wheat → Rice"}
+  sequence: [{slot: winter, crop: wheat}, {slot: summer, crop: rice}]
+  hypothesis: "Winter cereal then flooded rice; expected to show the highest summer water demand."
+- id: wheat_sorghum
+  name: {en: "Wheat → Sorghum"}
+  sequence: [{slot: winter, crop: wheat}, {slot: summer, crop: sorghum}]
+  hypothesis: "Tests whether a summer sorghum lowers water demand versus maize/rice."
