@@ -39,7 +39,7 @@ Basis: the team's PPTX *"Field Shift – Egypt Data Research Plan"* (25 slides; 
 | Crop temperature ranges & pH (EcoCrop mirror) | **extracted** for all 8 crops (units confirmed; variety-level rows) |
 | Crop-table validation | `scripts/pre_engine_crop_validate.py` passes: 0 errors; 6 documented `placeholder`/`missing` values remain (§7.5) |
 | HWSD soil values for the pilot point | `missing` — requires manual extraction (see §6.3) |
-| SMAP / MODIS data | Not started (optional, after everything else works) |
+| SMAP / MODIS data | Phase 9 local-extract context panels implemented; no product data downloaded yet (optional) |
 
 ---
 
@@ -454,13 +454,15 @@ No names, phone numbers, or exact addresses are collected. If the project later 
 ## 10. Optional datasets (only after everything else works)
 
 ### 10.1 NASA SMAP (priority 4) [PPTX slide 7]
-* Fields: `soil_moisture` (often m³/m³; confirm product), `observation_date` (YYYY-MM-DD), `quality_flag` (product-specific), `spatial_resolution_km` (actual product resolution), `dataset_version`.
-* Access: NSIDC SMAP portal and the NASA-USDA global soil-moisture data page (links in §4). NASA Earthdata login is typically required **[RECALLED]**; the `earthaccess` Python library can automate it.
+* Chosen product: NASA/NSIDC `SPL3SMP_E`, Version 6, enhanced L3 radiometer, daily 9 km grid. Product page: https://nsidc.org/data/spl3smp_e/versions/6 .
+* Local standardized CSV fields: `observation_date`, `soil_moisture` (m³/m³), product `quality_flag`, `quality_status`, `product_id`, actual `spatial_resolution_km`, `product_version`, `retrieved`.
+* Access requires a NASA Earthdata Login. Phase 9 reads a quality-interpreted local extract; it does not authenticate, download, or decode product HDF5/bit flags.
 * Limits (slide 7): some enhanced products are around 9 km; a pixel may cover several fields and land uses; **surface moisture is not root-zone water available to crops**; use trends and context, **not irrigation prescriptions**.
 * Engine use: context panel and an optional "soil-moisture context" indicator; never a core score term. Keep `quality_flag` and version. Choose the exact product in the build and record it in `sources.csv` **[TODO]**.
 
 ### 10.2 MODIS MOD13Q1 NDVI/EVI (priority 5) [PPTX slide 9]
-* 250 m, 16-day composite. Fields: `ndvi`, `evi`, `observation_date`, `pixel_quality`, `product_version`, `scale_factor`. Keep quality flags and the scale factor (**[RECALLED]** 0.0001 for NDVI/EVI — confirm in the product guide).
+* Chosen product: Terra `MOD13Q1.061`, 250 m, 16-day composites, scale factor 0.0001 for NDVI/EVI; raw fill value -3000 and valid raw range -2000..10000. Product DOI: https://doi.org/10.5067/MODIS/MOD13Q1.061 .
+* Local standardized CSV fields: `observation_date`, raw integer `ndvi`/`evi`, `pixel_quality` (0 good, 1 marginal, 2 snow/ice, 3 cloudy), `product_id`, `product_version`, `scale_factor`, `retrieved`.
 * Access: LAADS DAAC product page or Google Earth Engine collection `MODIS/061/MOD13Q1` (from the PPTX link).
 * Limits (slide 9): greenness is **not** a direct measure of soil health; mixed pixels and small fields complicate interpretation; supporting context, not the core rotation score.
 * Engine use: seasonal greenness curve beside the crop calendar; possibly an "typically low-greenness months" note for the bare-field idea. Never a score term in the MVP.

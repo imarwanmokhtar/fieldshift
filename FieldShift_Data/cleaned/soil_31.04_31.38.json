@@ -10,12 +10,65 @@
   "spatial_resolution": "1 km",
   "selection_note": null,
   "fields": {
-    "soil_texture":  {"v": null, "unit": "USDA class", "status": "missing"},
-    "soil_depth_cm": {"v": null, "unit": "cm", "status": "missing"},
-    "soil_ph":       {"v": null, "unit": "pH", "status": "missing"},
-    "organic_carbon":{"v": null, "unit": "<as in source>", "status": "missing"},
-    "available_water_capacity": {"v": null, "unit": "<as in source>", "status": "missing"},
-    "soil_ec_dsm":   {"v": null, "unit": "dS/m", "status": "missing"}
+    "soil_texture": {
+      "v": "clay",
+      "unit": "USDA class",
+      "status": "farmer",
+      "src": "FARMER_SOIL_TEST"
+    },
+    "soil_depth_cm": {
+      "v": 30.0,
+      "unit": "cm",
+      "status": "farmer",
+      "src": "FARMER_SOIL_TEST"
+    },
+    "soil_ph": {
+      "v": 7.0,
+      "unit": "pH",
+      "status": "farmer",
+      "src": "FARMER_SOIL_TEST"
+    },
+    "organic_carbon": {
+      "v": 2.0,
+      "unit": "%",
+      "status": "farmer",
+      "src": "FARMER_SOIL_TEST"
+    },
+    "available_water_capacity": {
+      "v": null,
+      "unit": "<as in source>",
+      "status": "missing"
+    },
+    "soil_ec_dsm": {
+      "v": 7.0,
+      "unit": "dS/m",
+      "status": "farmer",
+      "src": "FARMER_SOIL_TEST"
+    }
   },
-  "limitations": "Regional estimate. Salinity needs field EC measurement. NO VALUES YET: the HWSD raster/database has not been extracted for the pilot point (human task per DATA.md §6.3). The engine must report this location as soil=unknown with flags soil_unknown and salinity_unassessed."
+  "limitations": "Regional estimate. Salinity needs field EC measurement. NO VALUES YET: the HWSD raster/database has not been extracted for the pilot point (human task per DATA.md §6.3). The engine must report this location as soil=unknown with flags soil_unknown and salinity_unassessed.",
+  "farmer_test": {
+    "fields": {
+      "soil_texture": {
+        "v": "clay",
+        "unit": "USDA class"
+      },
+      "soil_ph": {
+        "v": 7.0,
+        "unit": "pH"
+      },
+      "organic_carbon": {
+        "v": 2.0,
+        "unit": "%"
+      },
+      "soil_ec_dsm": {
+        "v": 7.0,
+        "unit": "dS/m"
+      },
+      "soil_depth_cm": {
+        "v": 30.0,
+        "unit": "cm"
+      }
+    }
+  }
 }

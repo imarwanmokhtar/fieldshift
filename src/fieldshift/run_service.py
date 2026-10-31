@@ -15,12 +15,17 @@ import yaml
 from . import __version__
 from .analysis.evaluate import evaluate_rotation_set
 from .analysis.explain import add_explanations
+from .analysis.proposed import propose_candidate_strategies
 from .analysis.rotation import expand_template, load_rules, load_templates
 from .analysis.seasons import build_existing_sequence
 from .data.crops import load_crop_table
 from .data.crops import validate as validate_crops
+from .data.modis import SOURCE_URL as MODIS_URL
+from .data.modis import load_modis, summarize_modis
 from .data.power import clean_power, parse_power, seasonal_summary
 from .data.provenance import QualityFlag
+from .data.smap import SOURCE_URL as SMAP_URL
+from .data.smap import load_smap, summarize_smap
 from .data.soil import load_soil, soil_path
 from .data.validate import v_power, v_soil
 from .i18n import text
@@ -44,6 +49,16 @@ def _location(a: dict) -> tuple[float, float]:
         return float(a["lat"]), float(a["lon"])
     except (KeyError, TypeError, ValueError) as exc:
         raise ValueError(text("result.profile_invalid")) from exc
+
+
+def _crop_answer(answers: dict, key: str) -> str:
+    value = answers.get(key)
+    if value == "__other__":
+        typed = str(answers.get(f"{key}_other") or "unknown crop").strip()
+        return f"other_crop:{typed}"
+    if value in (None, "__unknown__"):
+        return "unreferenced_crop"
+    return str(value)
 
 
 def _period(value: str) -> tuple[int, int]:
@@ -200,6 +215,123 @@ def _crop_rows(crop_table, ids: set[str]) -> list[dict]:
     return out
 
 
+def _optional_context(dd: Path, locid: str, period: str) -> tuple[dict, list[dict], list[str]]:
+    panels = {}
+    sources = []
+    flags = []
+    specs = (
+        (
+            "smap",
+            dd / "cleaned" / f"smap_daily_{locid}.csv",
+            load_smap,
+            summarize_smap,
+            "NSIDC_SMAP",
+            "NASA SMAP Enhanced L3 Radiometer (SPL3SMP_E)",
+            "Version 6 · 9 km",
+            "9 km",
+            SMAP_URL,
+            "m³/m³; soil moisture is surface context, not root-zone water",
+        ),
+        (
+            "modis",
+            dd / "cleaned" / f"modis_mod13q1_{locid}.csv",
+            load_modis,
+            summarize_modis,
+            "MODIS_MOD13Q1",
+            "MODIS MOD13Q1.061 Terra Vegetation Indices",
+            "Version 061 · 250 m · 16-day composites",
+            "250 m",
+            MODIS_URL,
+            "unitless NDVI/EVI; 0.0001 scale factor applied",
+        ),
+    )
+    for key, path, loader, summarize, source_id, name, version, resolution, url, units in specs:
+        if not path.is_file():
+            panels[key] = {
+                "status": "not_provided",
+                "dataset": name,
+                "period": None,
+                "monthly": [],
+                "valid_observations": 0,
+                "excluded_observations": 0,
+                "quality_flags": [],
+                "caveat": "Optional context file not supplied; core analysis is unchanged.",
+            }
+            sources.append(
+                {
+                    "id": source_id,
+                    "name": name,
+                    "url": url,
+                    "version": version,
+                    "retrieved": None,
+                    "period": None,
+                    "resolution": resolution,
+                    "spatial_type": "gridded context",
+                    "units": units,
+                    "missing_value_rule": "Quality-screened; missing observations are not filled.",
+                    "status": "missing",
+                    "file": None,
+                }
+            )
+            continue
+        try:
+            frame = loader(path)
+            panel = summarize(frame, period)
+            panels[key] = panel
+            sources.append(
+                {
+                    "id": source_id,
+                    "name": name,
+                    "url": url,
+                    "version": panel.get("product_version") or version,
+                    "retrieved": panel.get("retrieved"),
+                    "period": panel.get("period"),
+                    "resolution": (
+                        f"{panel.get('spatial_resolution_km')} km" if key == "smap" else resolution
+                    ),
+                    "spatial_type": panel.get("spatial_type", "gridded context"),
+                    "units": units,
+                    "missing_value_rule": (
+                        "Product quality fields retained; rejected observations excluded; "
+                        "no gap filling."
+                    ),
+                    "status": "extracted",
+                    "file": str(path),
+                }
+            )
+            if panel.get("status") != "available":
+                flags.append(f"{key}_no_usable_observations")
+        except Exception as exc:
+            panels[key] = {
+                "status": "invalid",
+                "dataset": name,
+                "period": None,
+                "monthly": [],
+                "valid_observations": 0,
+                "excluded_observations": 0,
+                "quality_flags": [str(exc)],
+                "caveat": "This optional file was excluded; core analysis is unchanged.",
+            }
+            sources.append(
+                {
+                    "id": source_id,
+                    "name": name,
+                    "url": url,
+                    "version": version,
+                    "retrieved": None,
+                    "period": None,
+                    "resolution": resolution,
+                    "spatial_type": "gridded context",
+                    "units": units,
+                    "missing_value_rule": "Invalid file excluded from the context panel.",
+                    "status": "missing",
+                    "file": str(path),
+                }
+            )
+            flags.append(f"{key}_invalid")
+    return panels, sources, flags
+
+
 def build_result(
     profile_path: Path | str,
     data_dir: Path | str,
@@ -234,20 +366,16 @@ def build_result(
     if soil_errors:
         raise ValueError("Soil data failed validation: " + "; ".join(soil_errors))
     horizon = int(a.get("horizon", 1))
-    prev = a.get("prev_crop") or "__unknown__"
-    if prev in ("__unknown__", "__other__"):
-        prev = "unreferenced_crop"
-    other = a.get("existing_other_crop", "__unknown__")
-    if other in ("__unknown__", "__other__", None):
-        other = "unreferenced_crop"
+    prev = _crop_answer(a, "prev_crop")
+    other = _crop_answer(a, "existing_other_crop")
     if a.get("existing_edit") is False:
-        winter = a.get("existing_winter_crop", "__unknown__")
-        summer = a.get("existing_summer_crop", "__unknown__")
+        winter = _crop_answer(a, "existing_winter_crop")
+        summer = _crop_answer(a, "existing_summer_crop")
         existing = [
             {
                 "slot": slot,
                 "year": y,
-                "crop_id": cid if cid not in ("__unknown__", "__other__") else "unreferenced_crop",
+                "crop_id": cid,
             }
             for y in range(1, horizon + 1)
             for slot, cid in (("winter", winter), ("summer", summer))
@@ -256,6 +384,28 @@ def build_result(
         season = a.get("prev_season", "unknown")
         existing = build_existing_sequence(prev, season, other, horizon)
     templates = load_templates(dd / "references" / "rotation_templates.yaml")
+    rules = load_rules(dd / "references" / "rotation_rules.yaml")
+    bands_path = Path(__file__).parent.parent.parent / "config" / "bands.yaml"
+    thresholds_path = Path(__file__).parent.parent.parent / "config" / "thresholds.yaml"
+    bands = yaml.safe_load(bands_path.read_text()) if bands_path.is_file() else {}
+    thresholds = yaml.safe_load(thresholds_path.read_text()) if thresholds_path.is_file() else {}
+
+    ranks = a.get("prio_rank_list") or original.get("chosen_priorities") or []
+    ranks = [
+        value
+        for value in ranks
+        if value
+        in (
+            "reduce_water_use",
+            "support_soil_health",
+            "improve_climate_resilience",
+            "maintain_productivity",
+        )
+    ]
+    skipped = []
+    if a.get("budget_market", "none") != "none":
+        skipped.append("budget_market")
+
     alternatives = []
     strat_source = a.get("strat_source", "templates")
     if strat_source == "templates":
@@ -277,7 +427,7 @@ def build_result(
                 {
                     "slot": slot,
                     "year": y,
-                    "crop_id": a.get(f"custom_{slot}_{i}", "unreferenced_crop"),
+                    "crop_id": _crop_answer(a, f"custom_{slot}_{i}"),
                 }
                 for y in range(1, horizon + 1)
                 for slot in ("winter", "summer")
@@ -290,28 +440,28 @@ def build_result(
                     "sequence": seq,
                 }
             )
+    elif strat_source == "proposed":
+        alternatives = propose_candidate_strategies(
+            crop_table=crop_table,
+            existing_sequence=existing,
+            horizon=horizon,
+            daily_climate=climate,
+            soil_record=soil,
+            latitude=lat,
+            ranked_priorities=ranks,
+            skipped_priorities=skipped,
+            water_availability=a.get("water_avail", "unknown"),
+            rules=rules,
+            thresholds=thresholds,
+            bands=bands,
+            max_candidates=3,
+        )
     else:
         raise ValueError(
-            "Engine-proposed strategies are planned for a later phase; "
-            "choose templates or custom sequences."
+            f"Unknown strategy source: {strat_source}; choose templates, custom, or proposed."
         )
     if len(alternatives) < 2:
         raise ValueError("Choose at least two alternative strategies to compare.")
-    ranks = a.get("prio_rank_list") or original.get("chosen_priorities") or []
-    ranks = [
-        value
-        for value in ranks
-        if value
-        in (
-            "reduce_water_use",
-            "support_soil_health",
-            "improve_climate_resilience",
-            "maintain_productivity",
-        )
-    ]
-    skipped = []
-    if a.get("budget_market", "none") != "none":
-        skipped.append("budget_market")
     flags = list(wizard_flags)
     if end_year - start_year + 1 < 15:
         flags.append("climate_short_record")
@@ -329,10 +479,6 @@ def build_result(
         flags.append("irrigation_unknown")
     if lat < 22 or lat > 32 or lon < 25 or lon > 37:
         flags.append("outside_egypt")
-    bands_path = Path(__file__).parent.parent.parent / "config" / "bands.yaml"
-    thresholds_path = Path(__file__).parent.parent.parent / "config" / "thresholds.yaml"
-    bands = yaml.safe_load(bands_path.read_text()) if bands_path.is_file() else {}
-    thresholds = yaml.safe_load(thresholds_path.read_text()) if thresholds_path.is_file() else {}
     evaluated = evaluate_rotation_set(
         climate,
         crop_table,
@@ -343,7 +489,7 @@ def build_result(
         ranked_priorities=ranks,
         skipped_priorities=skipped,
         water_availability=a.get("water_avail", "unknown"),
-        rules=load_rules(dd / "references" / "rotation_rules.yaml"),
+        rules=rules,
         thresholds=thresholds,
         bands=bands,
         flags=flags,
@@ -363,6 +509,10 @@ def build_result(
             validation_codes.append("soil_regional_only")
     quality_codes = set(flags + validation_codes + crop_warnings)
     quality_codes.update(flag for s in explained for flag in s.flags)
+    optional_context, optional_sources, optional_flags = _optional_context(
+        dd, locid, selected_period
+    )
+    quality_codes.update(optional_flags)
     quality = [
         QualityFlag(
             code=code,
@@ -371,6 +521,7 @@ def build_result(
         for code in sorted(quality_codes)
     ]
     sources = _source_records(dd, selected_period, climate_path, crop_table, used_ids, soil)
+    sources.extend(optional_sources)
     raw_sha = None
     raw_dir = dd / "raw" / "power"
     if raw_dir.is_dir():
@@ -389,6 +540,7 @@ def build_result(
         data_sources=sources,
         quality_flags=quality,
         climate_summary=_season_summary(climate, selected_period),
+        optional_context=optional_context,
         crops_used=_crop_rows(crop_table, used_ids),
         strategies=explained,
         comparison=Comparison(
@@ -396,6 +548,7 @@ def build_result(
             too_close=comparison["too_close"],
             order_equal_weights=comparison["order_equal_weights"],
             ranking_stable=comparison["ranking_stable"],
+            priority_sensitivity=comparison.get("priority_sensitivity"),
         ),
         limitations=[text(f"result.methodology.{i}") for i in range(1, 6)],
         local_review=[text(f"result.local_review.{i}") for i in range(1, 4)],

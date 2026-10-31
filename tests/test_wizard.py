@@ -3,10 +3,12 @@
 import json
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 
 from typer.testing import CliRunner
 
 from fieldshift.cli import app
+from fieldshift.ui.prompter import QuestionaryPrompter
 
 runner = CliRunner()
 
@@ -72,3 +74,31 @@ def test_non_tty_exits_2():
     # CliRunner is not a TTY, invoking default command should exit 2
     result = runner.invoke(app, [])
     assert result.exit_code == 2
+
+
+def test_interactive_template_minimum_reprompts_without_error(monkeypatch, capsys):
+    import fieldshift.ui.prompter as prompter_module
+
+    answers = iter((["one"], ["one", "two"]))
+    ask_count = 0
+
+    class Checkbox:
+        def ask(self):
+            nonlocal ask_count
+            ask_count += 1
+            return next(answers)
+
+    monkeypatch.setattr(prompter_module.questionary, "checkbox", lambda *args, **kwargs: Checkbox())
+    ui = SimpleNamespace(questionary_style=lambda: None)
+    prompter = QuestionaryPrompter(ui)
+    selected = prompter.multi_select(
+        "templates",
+        "STRATEGIES",
+        "Choose two",
+        [("One", "one"), ("Two", "two")],
+        min_select=2,
+    )
+
+    assert selected == ["one", "two"]
+    assert ask_count == 2
+    assert "select at least 2 alternatives" in capsys.readouterr().out

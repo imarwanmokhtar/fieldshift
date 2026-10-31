@@ -59,6 +59,8 @@ def _why(strategy, hypothesis: str | None, evidence: list[dict], period: str) ->
         base = hypothesis
     elif strategy.kind.value == "custom":
         base = text("why.custom")
+    elif strategy.kind.value == "proposed":
+        base = text("why.proposed")
     else:
         base = text("why.chosen")
     statements = [base]

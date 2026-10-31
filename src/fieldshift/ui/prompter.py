@@ -69,22 +69,32 @@ class QuestionaryPrompter:
 
     def multi_select(self, qid, header, question, choices, *, min_select=0, help_text=None):
         norm = [(c if isinstance(c, tuple) else (c, c)) for c in choices]
-        q = questionary.checkbox(
-            question,
-            choices=[questionary.Choice(title=label, value=val) for label, val in norm],
-            style=self.ui.questionary_style(),
-            instruction=(help_text or ""),
-        )
-        try:
-            ans = q.ask()
-        except KeyboardInterrupt:
-            return BACK
-        if ans is None:
-            return BACK
-        if len(ans) < min_select:
-            # re-prompt by raising; wizard will re-ask
-            raise ValueError(f"select at least {min_select}")
-        return ans
+        instruction = help_text or ""
+        if min_select:
+            selection_hint = (
+                f"Select at least {min_select}: use Space to toggle choices, "
+                "then press Enter to finish."
+            )
+            instruction = f"{instruction}\n{selection_hint}" if instruction else selection_hint
+        while True:
+            q = questionary.checkbox(
+                question,
+                choices=[questionary.Choice(title=label, value=val) for label, val in norm],
+                style=self.ui.questionary_style(),
+                instruction=instruction,
+            )
+            try:
+                ans = q.ask()
+            except KeyboardInterrupt:
+                return BACK
+            if ans is None:
+                return BACK
+            if len(ans) >= min_select:
+                return ans
+            print(
+                f"You selected {len(ans)}. Select at least {min_select} alternatives "
+                "with Space, then press Enter to finish."
+            )
 
     def text(self, qid, header, question, *, help_text=None, skippable=False, validate=None):
         q = questionary.text(

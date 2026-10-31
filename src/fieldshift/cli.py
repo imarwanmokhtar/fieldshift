@@ -80,7 +80,11 @@ def main(
         import json
 
         data = json.loads(Path(answers).read_text(encoding="utf-8"))
-        _run_wizard_scripted(data)
+        try:
+            _run_wizard_scripted(data)
+        except (KeyError, ValueError, OSError, RuntimeError) as exc:
+            typer.echo(f"fieldshift: {exc}", err=True)
+            raise typer.Exit(code=2) from None
         return
     if non_tty_exit() != 0:
         raise typer.Exit(code=2)
@@ -306,9 +310,13 @@ def _run_wizard_interactive() -> None:
         raise
     profile_path = _save_profile(dd, answers, wiz)
     if answers.get("review") == "run":
-        result, out_dir = _execute_profile(
-            profile_path, dd, fetch=answers.get("data_mode") in ("fetch", "auto")
-        )
+        try:
+            result, out_dir = _execute_profile(
+                profile_path, dd, fetch=answers.get("data_mode") in ("fetch", "auto")
+            )
+        except (ValueError, FileNotFoundError, OSError, RuntimeError) as exc:
+            console.print(f"[error]✖ {exc}[/error]")
+            raise typer.Exit(code=1) from None
         _after_run(result, out_dir, prompter, ui, console)
 
 

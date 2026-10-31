@@ -59,3 +59,30 @@ references/
 ../.venv/bin/python ../scripts/pre_engine_power_clean.py    # climate cleaned/ from raw/
 ../.venv/bin/python ../scripts/pre_engine_crop_validate.py  # crop table checks (exit 0 = pass)
 ```
+
+## Optional satellite context (Phase 9)
+
+The run can display local, quality-screened SMAP and MODIS extracts without adding either source
+to the rotation score. Store one point/pixel extract per location using these exact filenames:
+
+* `cleaned/smap_daily_<lat>_<lon>.csv`
+* `cleaned/modis_mod13q1_<lat>_<lon>.csv`
+
+Use two-decimal coordinates in the filename, matching the climate and soil files. SMAP is the
+NASA/NSIDC Enhanced L3 radiometer product `SPL3SMP_E`, Version 6 (9 km). Its CSV columns are
+`observation_date,soil_moisture,quality_flag,quality_status,product_id,spatial_resolution_km,product_version,retrieved`.
+`soil_moisture` is volumetric fraction (m³/m³); preserve the product flag in `quality_flag` and
+record its product-specific interpretation in `quality_status` (`recommended`, `good`, `uncertain`,
+`bad`, or `missing`). Only recommended/good retrievals enter monthly medians. Earthdata access is
+required for the source product; the app does not log in or download it.
+
+MODIS is Terra `MOD13Q1.061`, 250 m, 16-day composites. Its CSV columns are
+`observation_date,ndvi,evi,pixel_quality,product_id,product_version,scale_factor,retrieved`. Keep the product's
+raw integer NDVI/EVI and reliability code (`0` good, `1` marginal, `2` snow/ice, `3` cloudy).
+`scale_factor` must be `0.0001`; the app applies it and excludes fill/out-of-range and non-good
+quality values. Both inputs must retain product version and retrieval date. Do not interpolate
+missing observations. MODIS greenness is not a soil-health measure; both products are regional pixel
+context, not field observations or irrigation advice.
+
+Official product references: [SMAP SPL3SMP_E Version 6](https://nsidc.org/data/spl3smp_e/versions/6)
+and [MODIS MOD13Q1.061](https://doi.org/10.5067/MODIS/MOD13Q1.061).

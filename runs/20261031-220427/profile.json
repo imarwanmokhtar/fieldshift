@@ -1,0 +1,46 @@
+{
+  "answers": {
+    "start": "new",
+    "loc_mode": "pilot",
+    "loc_name": null,
+    "coords_real": true,
+    "prev_crop": "wheat",
+    "prev_season": "winter",
+    "has_earlier": true,
+    "prev2_a": "rice",
+    "prev2_b": "cotton",
+    "irrigation": "canal",
+    "water_avail": "high",
+    "soil_test": true,
+    "soil_texture": "clay",
+    "soil_ph": 7.0,
+    "soil_oc": 2.0,
+    "soil_ec": 7.0,
+    "soil_depth": 30.0,
+    "soil_date": "2026-01-01",
+    "area": 10.0,
+    "prio_rank": "improve_climate_resilience",
+    "prio_rank_list": [
+      "maintain_productivity",
+      "support_soil_health",
+      "reduce_water_use",
+      "improve_climate_resilience"
+    ],
+    "budget_market": "none",
+    "data_mode": "offline",
+    "period": "2020-2025",
+    "horizon": 3,
+    "strat_source": "proposed",
+    "existing_edit": true,
+    "existing_other_crop": "wheat",
+    "review": "run",
+    "_locid": "31.04_31.38"
+  },
+  "flags": [],
+  "chosen_priorities": [
+    "maintain_productivity",
+    "support_soil_health",
+    "reduce_water_use",
+    "improve_climate_resilience"
+  ]
+}

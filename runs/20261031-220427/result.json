@@ -1,0 +1,3354 @@
+{
+  "schema_version": 1,
+  "engine_version": "0.1.0",
+  "run_id": "20261031-220427",
+  "created_at": "2026-10-31T22:04:29",
+  "disclaimer": "Supports, does not replace, farmer judgment and local expertise.",
+  "profile": {
+    "start": "new",
+    "loc_mode": "pilot",
+    "coords_real": true,
+    "prev_crop": "wheat",
+    "prev_season": "winter",
+    "has_earlier": true,
+    "prev2_a": "rice",
+    "prev2_b": "cotton",
+    "irrigation": "canal",
+    "water_avail": "high",
+    "soil_test": true,
+    "soil_texture": "clay",
+    "soil_ph": 7.0,
+    "soil_oc": 2.0,
+    "soil_ec": 7.0,
+    "soil_depth": 30.0,
+    "soil_date": "2026-01-01",
+    "area": 10.0,
+    "prio_rank": "improve_climate_resilience",
+    "prio_rank_list": [
+      "maintain_productivity",
+      "support_soil_health",
+      "reduce_water_use",
+      "improve_climate_resilience"
+    ],
+    "budget_market": "none",
+    "data_mode": "offline",
+    "period": "2020-2025",
+    "horizon": 3,
+    "strat_source": "proposed",
+    "existing_edit": true,
+    "existing_other_crop": "wheat",
+    "review": "run",
+    "latitude": 31.04,
+    "longitude": 31.38,
+    "raw_sha256": "465e89e32f276647e840ab4f4e86bf3735dbd48a4e17cec2021a1fabd6a23390"
+  },
+  "data_sources": [
+    {
+      "id": "NASA_POWER_DAILY",
+      "name": "NASA POWER daily API (AG community)",
+      "url": "https://power.larc.nasa.gov/api/temporal/daily/point",
+      "version": "MERRA-2 temperatures+precip / CERES SYN1deg solar",
+      "retrieved": "2026-10-30",
+      "period": "2020-2025",
+      "resolution": "0.5 x 0.625 deg (met; CERES SYN1deg solar)",
+      "spatial_type": "gridded (point query returns covering cell)",
+      "units": {
+        "temperature": "°C",
+        "rain": "mm/day",
+        "solar": "MJ/m²/day"
+      },
+      "missing_value_rule": "-999 -> NaN (confirmed in header)",
+      "status": "extracted",
+      "file": "FieldShift_Data/cleaned/climate_daily_31.04_31.38.csv"
+    },
+    {
+      "id": "ECOCROP_MIRROR",
+      "name": "EcoCrop crop requirements database mirror (OpenCLIM/ecocrop)",
+      "url": "https://raw.githubusercontent.com/OpenCLIM/ecocrop/main/EcoCrop_DB.csv",
+      "version": "mirror of FAO EcoCrop",
+      "retrieved": "2026-10-30",
+      "period": "n/a",
+      "resolution": "global (species/variety level)",
+      "spatial_type": "non-spatial reference",
+      "units": "degC; pH; days",
+      "missing_value_rule": "NaN stays missing",
+      "status": "extracted"
+    },
+    {
+      "id": "FAO29_T4",
+      "name": "FAO29_T4",
+      "url": "",
+      "version": null,
+      "retrieved": null,
+      "period": "reference",
+      "resolution": null,
+      "spatial_type": "non-spatial reference",
+      "units": null,
+      "missing_value_rule": null,
+      "status": "extracted"
+    },
+    {
+      "id": "FAO56_T11",
+      "name": "FAO56_T11",
+      "url": "",
+      "version": null,
+      "retrieved": null,
+      "period": "reference",
+      "resolution": null,
+      "spatial_type": "non-spatial reference",
+      "units": null,
+      "missing_value_rule": null,
+      "status": "extracted"
+    },
+    {
+      "id": "FAO56_T12",
+      "name": "FAO56_T12",
+      "url": "",
+      "version": null,
+      "retrieved": null,
+      "period": "reference",
+      "resolution": null,
+      "spatial_type": "non-spatial reference",
+      "units": null,
+      "missing_value_rule": null,
+      "status": "extracted"
+    },
+    {
+      "id": "FAO_CROP_CAL",
+      "name": "FAO crop calendar for Egypt (DHLG API + data-catalog export, lastUpdated 2021-02-26)",
+      "url": "https://api-cropcalendar.apps.fao.org/api/v1/countries/EG/cropCalendar?language=en",
+      "version": "lastUpdated 26/02/2021",
+      "retrieved": "2026-10-30",
+      "period": "n/a",
+      "resolution": "national + agro-ecological zones",
+      "spatial_type": "non-spatial reference",
+      "units": "MM-DD windows; days",
+      "missing_value_rule": "absent crop = no row",
+      "status": "extracted"
+    },
+    {
+      "id": "FAO_I3500E",
+      "name": "FAO i3500e 'Egyptian Clover - King of Forage Crops' (Dost et al. 2014)",
+      "url": "https://openknowledge.fao.org/server/api/core/bitstreams/947fa627-c9f2-4f67-b725-e0ef30d220c7/content",
+      "version": "2014",
+      "retrieved": "2026-10-30",
+      "period": "n/a",
+      "resolution": "Egypt-focused monograph",
+      "spatial_type": "non-spatial reference",
+      "units": "text (dates, spans)",
+      "missing_value_rule": "no mm/season figure printed",
+      "status": "extracted"
+    },
+    {
+      "id": "FAO_WATER_T14",
+      "name": "FAO_WATER_T14",
+      "url": "",
+      "version": null,
+      "retrieved": null,
+      "period": "reference",
+      "resolution": null,
+      "spatial_type": "non-spatial reference",
+      "units": null,
+      "missing_value_rule": null,
+      "status": "extracted"
+    },
+    {
+      "id": "FAO_WATER_T5",
+      "name": "FAO_WATER_T5",
+      "url": "",
+      "version": null,
+      "retrieved": null,
+      "period": "reference",
+      "resolution": null,
+      "spatial_type": "non-spatial reference",
+      "units": null,
+      "missing_value_rule": null,
+      "status": "extracted"
+    },
+    {
+      "id": "FARMER_SOIL_TEST",
+      "name": "FARMER_SOIL_TEST",
+      "url": "",
+      "version": null,
+      "retrieved": null,
+      "period": "reference",
+      "resolution": null,
+      "spatial_type": "non-spatial reference",
+      "units": null,
+      "missing_value_rule": null,
+      "status": "extracted"
+    },
+    {
+      "id": "GENERAL",
+      "name": "GENERAL",
+      "url": "",
+      "version": null,
+      "retrieved": null,
+      "period": "reference",
+      "resolution": null,
+      "spatial_type": "non-spatial reference",
+      "units": null,
+      "missing_value_rule": null,
+      "status": "extracted"
+    },
+    {
+      "id": "MAIZE_STUDY",
+      "name": "MAIZE_STUDY",
+      "url": "",
+      "version": null,
+      "retrieved": null,
+      "period": "reference",
+      "resolution": null,
+      "spatial_type": "non-spatial reference",
+      "units": null,
+      "missing_value_rule": null,
+      "status": "extracted"
+    },
+    {
+      "id": "NSIDC_SMAP",
+      "name": "NASA SMAP Enhanced L3 Radiometer (SPL3SMP_E)",
+      "url": "https://nsidc.org/data/spl3smp_e/versions/6",
+      "version": "Version 6 · 9 km",
+      "retrieved": null,
+      "period": null,
+      "resolution": "9 km",
+      "spatial_type": "gridded context",
+      "units": "m³/m³; soil moisture is surface context, not root-zone water",
+      "missing_value_rule": "Quality-screened; missing observations are not filled.",
+      "status": "missing",
+      "file": null
+    },
+    {
+      "id": "MODIS_MOD13Q1",
+      "name": "MODIS MOD13Q1.061 Terra Vegetation Indices",
+      "url": "https://doi.org/10.5067/MODIS/MOD13Q1.061",
+      "version": "Version 061 · 250 m · 16-day composites",
+      "retrieved": null,
+      "period": null,
+      "resolution": "250 m",
+      "spatial_type": "gridded context",
+      "units": "unitless NDVI/EVI; 0.0001 scale factor applied",
+      "missing_value_rule": "Quality-screened; missing observations are not filled.",
+      "status": "missing",
+      "file": null
+    }
+  ],
+  "quality_flags": [
+    {
+      "code": "climate_short_record",
+      "text_key": "flag.climate_short_record",
+      "severity": "warn"
+    },
+    {
+      "code": "crop_value_missing",
+      "text_key": "flag.crop_value_missing",
+      "severity": "warn"
+    },
+    {
+      "code": "crop_value_placeholder",
+      "text_key": "flag.crop_value_placeholder",
+      "severity": "warn"
+    },
+    {
+      "code": "et0_estimated",
+      "text_key": "flag.et0_estimated",
+      "severity": "warn"
+    },
+    {
+      "code": "rule_unsupported",
+      "text_key": "flag.rule_unsupported",
+      "severity": "warn"
+    },
+    {
+      "code": "season_overlap",
+      "text_key": "flag.season_overlap",
+      "severity": "warn"
+    },
+    {
+      "code": "soil_regional_only",
+      "text_key": "flag.soil_regional_only",
+      "severity": "warn"
+    },
+    {
+      "code": "stage_split_assumed",
+      "text_key": "flag.stage_split_assumed",
+      "severity": "warn"
+    }
+  ],
+  "climate_summary": {
+    "winter": {
+      "label": "Winter",
+      "t_mean_c": 17.5,
+      "t_min_c": 5.5,
+      "t_max_c": 41.6,
+      "rain_total_mm": 91.8,
+      "heat_days": 6.0,
+      "cold_days": 0.0,
+      "frost_days": 0.0,
+      "n_complete_windows": 5,
+      "period": "2020-2025"
+    },
+    "summer": {
+      "label": "Summer",
+      "t_mean_c": 27.9,
+      "t_min_c": 13.5,
+      "t_max_c": 45.0,
+      "rain_total_mm": 2.2,
+      "heat_days": 130.5,
+      "cold_days": 0.0,
+      "frost_days": 0.0,
+      "n_complete_windows": 6,
+      "period": "2020-2025"
+    },
+    "n_complete_windows": {
+      "winter": 5,
+      "summer": 6
+    }
+  },
+  "optional_context": {
+    "smap": {
+      "status": "not_provided",
+      "dataset": "NASA SMAP Enhanced L3 Radiometer (SPL3SMP_E)",
+      "period": null,
+      "monthly": [],
+      "valid_observations": 0,
+      "excluded_observations": 0,
+      "quality_flags": [],
+      "caveat": "Optional context file not supplied; core analysis is unchanged."
+    },
+    "modis": {
+      "status": "not_provided",
+      "dataset": "MODIS MOD13Q1.061 Terra Vegetation Indices",
+      "period": null,
+      "monthly": [],
+      "valid_observations": 0,
+      "excluded_observations": 0,
+      "quality_flags": [],
+      "caveat": "Optional context file not supplied; core analysis is unchanged."
+    }
+  },
+  "crops_used": [
+    {
+      "crop_id": "wheat",
+      "name": "Wheat",
+      "fields": {
+        "family": {
+          "v": "Poaceae",
+          "src": "GENERAL",
+          "status": "general_fact"
+        },
+        "n_fixer": {
+          "v": false,
+          "src": "GENERAL",
+          "status": "general_fact"
+        },
+        "sowing_window": {
+          "v": {
+            "start": "11-15",
+            "end": "11-30"
+          },
+          "unit": "MM-DD",
+          "src": "FAO_CROP_CAL",
+          "status": "extracted"
+        },
+        "growth_duration_days": {
+          "v": 160,
+          "unit": "days",
+          "src": "FAO56_T11",
+          "status": "extracted"
+        },
+        "stage_days": {
+          "v": {
+            "ini": 20,
+            "dev": 50,
+            "mid": 60,
+            "late": 30
+          },
+          "unit": "days",
+          "src": "FAO56_T11",
+          "status": "extracted"
+        },
+        "kc": {
+          "v": {
+            "ini": 0.3,
+            "mid": 1.15,
+            "end": 0.25
+          },
+          "unit": "-",
+          "src": "FAO56_T12",
+          "status": "extracted"
+        },
+        "water_requirement_mm_ref": {
+          "v": {
+            "min": 450,
+            "max": 650
+          },
+          "unit": "mm/season",
+          "src": "FAO_WATER_T5",
+          "status": "extracted"
+        },
+        "temperature_c": {
+          "v": {
+            "topmn": 15.0,
+            "topmx": 23.0,
+            "tmin": 5.0,
+            "tmax": 27.0,
+            "ktmp": 0.0
+          },
+          "unit": "°C",
+          "src": "ECOCROP_MIRROR",
+          "status": "extracted"
+        },
+        "drought_sensitivity": {
+          "v": "medium",
+          "unit": "low|medium|high",
+          "src": "FAO_WATER_T14",
+          "status": "extracted"
+        },
+        "salinity_threshold_ece_dsm": {
+          "v": 6.0,
+          "unit": "dS/m",
+          "src": "FAO29_T4",
+          "status": "extracted"
+        },
+        "soil_ph_range": {
+          "v": {
+            "ph_min": 5.5,
+            "ph_max": 8.5,
+            "ph_opt_min": 6.0,
+            "ph_opt_max": 7.0
+          },
+          "unit": "pH",
+          "src": "ECOCROP_MIRROR",
+          "status": "extracted"
+        }
+      }
+    },
+    {
+      "crop_id": "maize",
+      "name": "Maize",
+      "fields": {
+        "family": {
+          "v": "Poaceae",
+          "src": "GENERAL",
+          "status": "general_fact"
+        },
+        "n_fixer": {
+          "v": false,
+          "src": "GENERAL",
+          "status": "general_fact"
+        },
+        "sowing_window": {
+          "v": {
+            "start": "05-01",
+            "end": "07-01"
+          },
+          "unit": "MM-DD",
+          "src": "MAIZE_STUDY",
+          "status": "extracted"
+        },
+        "growth_duration_days": {
+          "v": 150,
+          "unit": "days",
+          "src": "FAO56_T11",
+          "status": "extracted"
+        },
+        "stage_days": {
+          "v": {
+            "ini": 30,
+            "dev": 40,
+            "mid": 50,
+            "late": 30
+          },
+          "unit": "days",
+          "src": "FAO56_T11",
+          "status": "extracted"
+        },
+        "kc": {
+          "v": {
+            "ini": 0.3,
+            "mid": 1.2,
+            "end": 0.6
+          },
+          "unit": "-",
+          "src": "FAO56_T12",
+          "status": "extracted"
+        },
+        "water_requirement_mm_ref": {
+          "v": {
+            "min": 500,
+            "max": 800
+          },
+          "unit": "mm/season",
+          "src": "FAO_WATER_T5",
+          "status": "extracted"
+        },
+        "temperature_c": {
+          "v": {
+            "topmn": 18.0,
+            "topmx": 33.0,
+            "tmin": 10.0,
+            "tmax": 47.0,
+            "ktmp": null
+          },
+          "unit": "°C",
+          "src": "ECOCROP_MIRROR",
+          "status": "extracted"
+        },
+        "drought_sensitivity": {
+          "v": "high",
+          "unit": "low|medium|high",
+          "src": "FAO_WATER_T14",
+          "status": "extracted"
+        },
+        "salinity_threshold_ece_dsm": {
+          "v": 1.7,
+          "unit": "dS/m",
+          "src": "FAO29_T4",
+          "status": "extracted"
+        },
+        "soil_ph_range": {
+          "v": {
+            "ph_min": 4.5,
+            "ph_max": 8.5,
+            "ph_opt_min": 5.0,
+            "ph_opt_max": 7.0
+          },
+          "unit": "pH",
+          "src": "ECOCROP_MIRROR",
+          "status": "extracted"
+        }
+      }
+    },
+    {
+      "crop_id": "cotton",
+      "name": "Cotton",
+      "fields": {
+        "family": {
+          "v": "Malvaceae",
+          "src": "GENERAL",
+          "status": "general_fact"
+        },
+        "n_fixer": {
+          "v": false,
+          "src": "GENERAL",
+          "status": "general_fact"
+        },
+        "sowing_window": {
+          "v": {
+            "start": "03-01",
+            "end": "05-31"
+          },
+          "unit": "MM-DD",
+          "src": "FAO56_T11",
+          "status": "extracted"
+        },
+        "growth_duration_days": {
+          "v": 195,
+          "unit": "days",
+          "src": "FAO56_T11",
+          "status": "extracted"
+        },
+        "stage_days": {
+          "v": {
+            "ini": 30,
+            "dev": 50,
+            "mid": 60,
+            "late": 55
+          },
+          "unit": "days",
+          "src": "FAO56_T11",
+          "status": "extracted"
+        },
+        "kc": {
+          "v": {
+            "ini": 0.35,
+            "mid": 1.15,
+            "end": 0.7
+          },
+          "unit": "-",
+          "src": "FAO56_T12",
+          "status": "extracted"
+        },
+        "water_requirement_mm_ref": {
+          "v": {
+            "min": 700,
+            "max": 1300
+          },
+          "unit": "mm/season",
+          "src": "FAO_WATER_T5",
+          "status": "extracted"
+        },
+        "temperature_c": {
+          "v": {
+            "topmn": 22.0,
+            "topmx": 32.0,
+            "tmin": 15.0,
+            "tmax": 38.0,
+            "ktmp": null
+          },
+          "unit": "°C",
+          "src": "ECOCROP_MIRROR",
+          "status": "extracted"
+        },
+        "drought_sensitivity": {
+          "v": "low",
+          "unit": "low|medium|high",
+          "src": "FAO_WATER_T14",
+          "status": "extracted"
+        },
+        "salinity_threshold_ece_dsm": {
+          "v": 7.7,
+          "unit": "dS/m",
+          "src": "FAO29_T4",
+          "status": "extracted"
+        },
+        "soil_ph_range": {
+          "v": {
+            "ph_min": 5.0,
+            "ph_max": 8.5,
+            "ph_opt_min": 5.2,
+            "ph_opt_max": 7.2
+          },
+          "unit": "pH",
+          "src": "ECOCROP_MIRROR",
+          "status": "extracted"
+        }
+      }
+    },
+    {
+      "crop_id": "sugar_beet",
+      "name": "Sugar beet",
+      "fields": {
+        "family": {
+          "v": "Amaranthaceae",
+          "src": "GENERAL",
+          "status": "general_fact"
+        },
+        "n_fixer": {
+          "v": false,
+          "src": "GENERAL",
+          "status": "general_fact"
+        },
+        "sowing_window": {
+          "v": {
+            "start": "10-01",
+            "end": "10-20"
+          },
+          "unit": "MM-DD",
+          "src": "FAO_CROP_CAL",
+          "status": "extracted"
+        },
+        "growth_duration_days": {
+          "v": 205,
+          "unit": "days",
+          "src": "FAO56_T11",
+          "status": "extracted"
+        },
+        "stage_days": {
+          "v": {
+            "ini": 35,
+            "dev": 60,
+            "mid": 70,
+            "late": 40
+          },
+          "unit": "days",
+          "src": "FAO56_T11",
+          "status": "extracted"
+        },
+        "kc": {
+          "v": {
+            "ini": 0.35,
+            "mid": 1.2,
+            "end": 0.7
+          },
+          "unit": "-",
+          "src": "FAO56_T12",
+          "status": "extracted"
+        },
+        "water_requirement_mm_ref": {
+          "v": {
+            "min": 550,
+            "max": 750
+          },
+          "unit": "mm/season",
+          "src": "FAO_WATER_T5",
+          "status": "extracted"
+        },
+        "temperature_c": {
+          "v": {
+            "topmn": 15.0,
+            "topmx": 25.0,
+            "tmin": 4.0,
+            "tmax": 35.0,
+            "ktmp": 0.0
+          },
+          "unit": "°C",
+          "src": "ECOCROP_MIRROR",
+          "status": "extracted"
+        },
+        "drought_sensitivity": {
+          "v": "medium",
+          "unit": "low|medium|high",
+          "src": "FAO_WATER_T14",
+          "status": "extracted"
+        },
+        "salinity_threshold_ece_dsm": {
+          "v": 7.0,
+          "unit": "dS/m",
+          "src": "FAO29_T4",
+          "status": "extracted"
+        },
+        "soil_ph_range": {
+          "v": {
+            "ph_min": 5.5,
+            "ph_max": 7.5,
+            "ph_opt_min": 6.0,
+            "ph_opt_max": 7.0
+          },
+          "unit": "pH",
+          "src": "ECOCROP_MIRROR",
+          "status": "extracted"
+        }
+      }
+    },
+    {
+      "crop_id": "berseem",
+      "name": "Berseem clover",
+      "fields": {
+        "family": {
+          "v": "Fabaceae",
+          "src": "GENERAL",
+          "status": "general_fact"
+        },
+        "n_fixer": {
+          "v": true,
+          "src": "GENERAL",
+          "status": "general_fact"
+        },
+        "sowing_window": {
+          "v": {
+            "start": "09-15",
+            "end": "11-30"
+          },
+          "unit": "MM-DD",
+          "src": "FAO_I3500E",
+          "status": "extracted"
+        },
+        "growth_duration_days": {
+          "v": 200,
+          "unit": "days",
+          "src": "FAO_I3500E",
+          "status": "placeholder"
+        },
+        "stage_days": {
+          "v": null,
+          "unit": "days",
+          "src": "FAO_I3500E",
+          "status": "missing"
+        },
+        "kc": {
+          "v": {
+            "ini": 0.4,
+            "mid": 0.9,
+            "end": 0.85
+          },
+          "unit": "-",
+          "src": "FAO56_T12",
+          "status": "extracted"
+        },
+        "water_requirement_mm_ref": {
+          "v": null,
+          "unit": "mm/season",
+          "src": "FAO_WATER_T5",
+          "status": "missing"
+        },
+        "temperature_c": {
+          "v": {
+            "topmn": 16.0,
+            "topmx": 27.0,
+            "tmin": 3.0,
+            "tmax": 35.0,
+            "ktmp": -2.0
+          },
+          "unit": "°C",
+          "src": "ECOCROP_MIRROR",
+          "status": "extracted"
+        },
+        "drought_sensitivity": {
+          "v": null,
+          "unit": "low|medium|high",
+          "src": "FAO_WATER_T14",
+          "status": "missing"
+        },
+        "salinity_threshold_ece_dsm": {
+          "v": null,
+          "unit": "dS/m",
+          "src": "FAO29_T4",
+          "status": "missing"
+        },
+        "soil_ph_range": {
+          "v": {
+            "ph_min": 4.9,
+            "ph_max": 7.5,
+            "ph_opt_min": 6.5,
+            "ph_opt_max": 7.0
+          },
+          "unit": "pH",
+          "src": "ECOCROP_MIRROR",
+          "status": "extracted"
+        }
+      }
+    },
+    {
+      "crop_id": "sorghum",
+      "name": "Sorghum",
+      "fields": {
+        "family": {
+          "v": "Poaceae",
+          "src": "GENERAL",
+          "status": "general_fact"
+        },
+        "n_fixer": {
+          "v": false,
+          "src": "GENERAL",
+          "status": "general_fact"
+        },
+        "sowing_window": {
+          "v": {
+            "start": "05-10",
+            "end": "06-01"
+          },
+          "unit": "MM-DD",
+          "src": "FAO_CROP_CAL",
+          "status": "extracted"
+        },
+        "growth_duration_days": {
+          "v": 130,
+          "unit": "days",
+          "src": "FAO56_T11",
+          "status": "extracted"
+        },
+        "stage_days": {
+          "v": {
+            "ini": 20,
+            "dev": 35,
+            "mid": 45,
+            "late": 30
+          },
+          "unit": "days",
+          "src": "FAO56_T11",
+          "status": "extracted"
+        },
+        "kc": {
+          "v": {
+            "ini": 0.3,
+            "mid": 1.0,
+            "end": 0.55
+          },
+          "unit": "-",
+          "src": "FAO56_T12",
+          "status": "extracted"
+        },
+        "water_requirement_mm_ref": {
+          "v": {
+            "min": 450,
+            "max": 650
+          },
+          "unit": "mm/season",
+          "src": "FAO_WATER_T5",
+          "status": "extracted"
+        },
+        "temperature_c": {
+          "v": {
+            "topmn": 22.0,
+            "topmx": 35.0,
+            "tmin": 8.0,
+            "tmax": 40.0,
+            "ktmp": null
+          },
+          "unit": "°C",
+          "src": "ECOCROP_MIRROR",
+          "status": "extracted"
+        },
+        "drought_sensitivity": {
+          "v": "low",
+          "unit": "low|medium|high",
+          "src": "FAO_WATER_T14",
+          "status": "extracted"
+        },
+        "salinity_threshold_ece_dsm": {
+          "v": 6.8,
+          "unit": "dS/m",
+          "src": "FAO29_T4",
+          "status": "extracted"
+        },
+        "soil_ph_range": {
+          "v": {
+            "ph_min": 5.0,
+            "ph_max": 8.0,
+            "ph_opt_min": 5.5,
+            "ph_opt_max": 7.5
+          },
+          "unit": "pH",
+          "src": "ECOCROP_MIRROR",
+          "status": "extracted"
+        }
+      }
+    }
+  ],
+  "strategies": [
+    {
+      "id": "existing",
+      "kind": "existing",
+      "name": "Existing rotation",
+      "sequence": [
+        {
+          "slot": "winter",
+          "year": 1,
+          "crop_id": "wheat"
+        },
+        {
+          "slot": "summer",
+          "year": 1,
+          "crop_id": "wheat"
+        },
+        {
+          "slot": "winter",
+          "year": 2,
+          "crop_id": "wheat"
+        },
+        {
+          "slot": "summer",
+          "year": 2,
+          "crop_id": "wheat"
+        },
+        {
+          "slot": "winter",
+          "year": 3,
+          "crop_id": "wheat"
+        },
+        {
+          "slot": "summer",
+          "year": 3,
+          "crop_id": "wheat"
+        }
+      ],
+      "indicators": [
+        {
+          "id": "heat_days",
+          "label": "Heat exposure",
+          "median": 5.0,
+          "min": 5.0,
+          "max": 5.0,
+          "unit": "days/window",
+          "band": "Moderate",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 5
+        },
+        {
+          "id": "cold_days",
+          "label": "Cold exposure",
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "unit": "days/window",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 5
+        },
+        {
+          "id": "frost_days",
+          "label": "Frost exposure",
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "unit": "days/window",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 5
+        },
+        {
+          "id": "temp_in_range_pct",
+          "label": "Temperature suitability",
+          "median": 68.8,
+          "min": 68.8,
+          "max": 68.8,
+          "unit": "% of days",
+          "band": "Moderate",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 5
+        },
+        {
+          "id": "days_above_tmax",
+          "label": "Days above crop maximum",
+          "median": 39.0,
+          "min": 39.0,
+          "max": 39.0,
+          "unit": "days/window",
+          "band": "Poor",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 5
+        },
+        {
+          "id": "days_below_tmin",
+          "label": "Days below crop minimum",
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "unit": "days/window",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 5
+        },
+        {
+          "id": "rain_window_mm",
+          "label": "Rainfall",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "mm/window",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 5
+        },
+        {
+          "id": "etc_window_mm",
+          "label": "Estimated crop water need (ETc)",
+          "median": 442.11,
+          "min": 442.11,
+          "max": 442.11,
+          "unit": "mm/season",
+          "band": "Unknown",
+          "status": "estimated",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 5
+        },
+        {
+          "id": "rain_coverage_pct",
+          "label": "Rain coverage of ETc",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "%",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 5
+        },
+        {
+          "id": "irrigation_dependence",
+          "label": "Irrigation dependence",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Poor",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 5
+        },
+        {
+          "id": "water_vs_access",
+          "label": "Water demand vs reported access",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 5
+        },
+        {
+          "id": "ph_fit",
+          "label": "Soil pH fit",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "FAO crop reference + soil record",
+          "n_windows": 5
+        },
+        {
+          "id": "salinity_fit",
+          "label": "Salinity fit",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Moderate",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "FAO crop reference + soil record",
+          "n_windows": 5
+        },
+        {
+          "id": "drought_sensitivity",
+          "label": "Crop drought sensitivity",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "class",
+          "band": "Moderate",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "FAO crop reference + soil record",
+          "n_windows": 5
+        },
+        {
+          "id": "etc_year_mm",
+          "label": "etc year mm",
+          "median": 884.22,
+          "min": 884.22,
+          "max": 884.22,
+          "unit": "band",
+          "band": "Moderate",
+          "status": "estimated",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 5
+        },
+        {
+          "id": "water_demand_rel",
+          "label": "Relative annual ETc",
+          "median": 0.5193214087493283,
+          "min": null,
+          "max": null,
+          "unit": "relative",
+          "band": "Good",
+          "status": "estimated",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 5
+        }
+      ],
+      "priority_results": {
+        "reduce_water_use": {
+          "band": "Moderate",
+          "indicators": [
+            "water_demand_rel",
+            "irrigation_dependence",
+            "water_vs_access"
+          ]
+        },
+        "support_soil_health": {
+          "band": "Good",
+          "indicators": [
+            "ph_fit",
+            "salinity_fit"
+          ]
+        },
+        "improve_climate_resilience": {
+          "band": "Moderate",
+          "indicators": [
+            "heat_days",
+            "cold_days",
+            "frost_days",
+            "days_above_tmax",
+            "drought_sensitivity"
+          ]
+        },
+        "maintain_productivity": {
+          "band": "Moderate",
+          "indicators": [
+            "temp_in_range_pct",
+            "days_above_tmax",
+            "ph_fit",
+            "salinity_fit"
+          ]
+        },
+        "budget_market": {
+          "band": "Unknown",
+          "indicators": []
+        }
+      },
+      "overall": {
+        "band": "Moderate",
+        "value": 0.5982638888888888,
+        "basis": "4 of 5 priorities had data",
+        "suppressed": false
+      },
+      "confidence": "low",
+      "flags": [
+        "climate_short_record",
+        "et0_estimated",
+        "rule_unsupported",
+        "soil_regional_only"
+      ],
+      "why_suggested": [
+        "Your current practice, as entered, is included as the comparison baseline.",
+        "heat_days was Moderate using NASA POWER data for 2020-2025 [heat_days].",
+        "cold_days was Good using NASA POWER data for 2020-2025 [cold_days].",
+        "frost_days was Good using NASA POWER data for 2020-2025 [frost_days]."
+      ],
+      "evidence": [
+        {
+          "indicator": "heat_days",
+          "value_range": "5.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Moderate"
+        },
+        {
+          "indicator": "cold_days",
+          "value_range": "0.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "frost_days",
+          "value_range": "0.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "temp_in_range_pct",
+          "value_range": "68.8",
+          "unit": "% of days",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Moderate"
+        },
+        {
+          "indicator": "days_above_tmax",
+          "value_range": "39.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Poor"
+        },
+        {
+          "indicator": "days_below_tmin",
+          "value_range": "0.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "irrigation_dependence",
+          "value_range": "Poor",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Poor"
+        },
+        {
+          "indicator": "water_vs_access",
+          "value_range": "Good",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "ph_fit",
+          "value_range": "Good",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "observed",
+          "dataset": "FAO crop reference + soil record",
+          "band": "Good"
+        },
+        {
+          "indicator": "salinity_fit",
+          "value_range": "Moderate",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "observed",
+          "dataset": "FAO crop reference + soil record",
+          "band": "Moderate"
+        },
+        {
+          "indicator": "drought_sensitivity",
+          "value_range": "Moderate",
+          "unit": "class",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "observed",
+          "dataset": "FAO crop reference + soil record",
+          "band": "Moderate"
+        },
+        {
+          "indicator": "etc_year_mm",
+          "value_range": "884.2",
+          "unit": "band",
+          "dataset_badge": "estimated",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "estimated",
+          "dataset": "NASA POWER + FAO-56",
+          "band": "Moderate"
+        },
+        {
+          "indicator": "water_demand_rel",
+          "value_range": null,
+          "unit": "relative",
+          "dataset_badge": "estimated",
+          "period": "2020-2025",
+          "n_windows": 5,
+          "status": "estimated",
+          "dataset": "NASA POWER + FAO-56",
+          "band": "Good"
+        }
+      ],
+      "benefits": [],
+      "information_gaps": [
+        "The selected climate record is shorter than the recommended period. Use more complete years if available.",
+        "ET0 estimated from temperatures (Hargreaves–Samani), not measured.",
+        "A triggered rotation rule is shown as a note only because its effect is not supported by a cited source.",
+        "Soil values are regional grid context, not a field measurement. Add a field soil test."
+      ],
+      "risks_for_local_review": [
+        "Check local variety suitability and seed availability.",
+        "Confirm sowing dates with local agronomy and the crop calendar.",
+        "Review local pest and disease pressure.",
+        "Check market prices, input costs, and household food or fodder needs.",
+        "Confirm irrigation allocation and any current crop-area rules.",
+        "Review equipment, labor, and harvest timing."
+      ],
+      "sowing_sensitivity": [
+        {
+          "crop_id": "wheat",
+          "sowing_window": "11-15 .. 11-30",
+          "period": "2020-01-01/2025-12-31",
+          "dataset": "NASA POWER + FAO crop reference",
+          "windows": {
+            "start": 5,
+            "mid": 5,
+            "end": 5
+          },
+          "units": {
+            "etc_window_mm": "mm/season",
+            "heat_days": "days/window",
+            "cold_days": "days/window",
+            "frost_days": "days/window",
+            "temp_in_range_pct": "% of days",
+            "rain_window_mm": "mm/window"
+          },
+          "indicators": {
+            "etc_window_mm": {
+              "start": 416.6,
+              "mid": 442.1,
+              "end": 474.8,
+              "spread": 58.2
+            },
+            "heat_days": {
+              "start": 4,
+              "mid": 5,
+              "end": 5,
+              "spread": 1
+            },
+            "cold_days": {
+              "start": 0,
+              "mid": 0,
+              "end": 0,
+              "spread": 0
+            },
+            "frost_days": {
+              "start": 0,
+              "mid": 0,
+              "end": 0,
+              "spread": 0
+            },
+            "temp_in_range_pct": {
+              "start": 70.0,
+              "mid": 68.8,
+              "end": 67.5,
+              "spread": 2.5
+            },
+            "rain_window_mm": {
+              "start": 90.1,
+              "mid": 89.1,
+              "end": 89.4,
+              "spread": 1.0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "proposed-1",
+      "kind": "proposed",
+      "name": "Candidate 1 (Sugar beet / Cotton / Berseem clover / Sorghum / Sugar beet / Cotton)",
+      "sequence": [
+        {
+          "slot": "winter",
+          "year": 1,
+          "crop_id": "sugar_beet"
+        },
+        {
+          "slot": "summer",
+          "year": 1,
+          "crop_id": "cotton"
+        },
+        {
+          "slot": "winter",
+          "year": 2,
+          "crop_id": "berseem"
+        },
+        {
+          "slot": "summer",
+          "year": 2,
+          "crop_id": "sorghum"
+        },
+        {
+          "slot": "winter",
+          "year": 3,
+          "crop_id": "sugar_beet"
+        },
+        {
+          "slot": "summer",
+          "year": 3,
+          "crop_id": "cotton"
+        }
+      ],
+      "indicators": [
+        {
+          "id": "heat_days",
+          "label": "Heat exposure",
+          "median": 62.0,
+          "min": 9.0,
+          "max": 133.0,
+          "unit": "days/window",
+          "band": "Poor",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "cold_days",
+          "label": "Cold exposure",
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "unit": "days/window",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "frost_days",
+          "label": "Frost exposure",
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "unit": "days/window",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "temp_in_range_pct",
+          "label": "Temperature suitability",
+          "median": 78.375,
+          "min": 61.5,
+          "max": 100.0,
+          "unit": "% of days",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "days_above_tmax",
+          "label": "Days above crop maximum",
+          "median": 22.0,
+          "min": 9.0,
+          "max": 83.5,
+          "unit": "days/window",
+          "band": "Poor",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "days_below_tmin",
+          "label": "Days below crop minimum",
+          "median": 0.0,
+          "min": 0.0,
+          "max": 15.0,
+          "unit": "days/window",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "rain_window_mm",
+          "label": "Rainfall",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "mm/window",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "etc_window_mm",
+          "label": "Estimated crop water need (ETc)",
+          "median": 638.3800000000001,
+          "min": 536.73,
+          "max": 1108.025,
+          "unit": "mm/season",
+          "band": "Unknown",
+          "status": "estimated",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 22
+        },
+        {
+          "id": "rain_coverage_pct",
+          "label": "Rain coverage of ETc",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "%",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 22
+        },
+        {
+          "id": "irrigation_dependence",
+          "label": "Irrigation dependence",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Poor",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "water_vs_access",
+          "label": "Water demand vs reported access",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "ph_fit",
+          "label": "Soil pH fit",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "FAO crop reference + soil record",
+          "n_windows": 22
+        },
+        {
+          "id": "salinity_fit",
+          "label": "Salinity fit",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "FAO crop reference + soil record",
+          "n_windows": 22
+        },
+        {
+          "id": "drought_sensitivity",
+          "label": "Crop drought sensitivity",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "class",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "FAO crop reference + soil record",
+          "n_windows": 22
+        },
+        {
+          "id": "etc_year_mm",
+          "label": "etc year mm",
+          "median": 1702.645,
+          "min": 1702.645,
+          "max": 1702.645,
+          "unit": "band",
+          "band": "Moderate",
+          "status": "estimated",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 22
+        },
+        {
+          "id": "water_demand_rel",
+          "label": "Relative annual ETc",
+          "median": 1.0,
+          "min": null,
+          "max": null,
+          "unit": "relative",
+          "band": "Poor",
+          "status": "estimated",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 22
+        }
+      ],
+      "priority_results": {
+        "reduce_water_use": {
+          "band": "Poor",
+          "indicators": [
+            "water_demand_rel",
+            "irrigation_dependence",
+            "water_vs_access"
+          ]
+        },
+        "support_soil_health": {
+          "band": "Good",
+          "indicators": [
+            "ph_fit",
+            "salinity_fit"
+          ]
+        },
+        "improve_climate_resilience": {
+          "band": "Moderate",
+          "indicators": [
+            "heat_days",
+            "cold_days",
+            "frost_days",
+            "days_above_tmax",
+            "drought_sensitivity"
+          ]
+        },
+        "maintain_productivity": {
+          "band": "Moderate",
+          "indicators": [
+            "temp_in_range_pct",
+            "days_above_tmax",
+            "ph_fit",
+            "salinity_fit"
+          ]
+        },
+        "budget_market": {
+          "band": "Unknown",
+          "indicators": []
+        }
+      },
+      "overall": {
+        "band": "Good",
+        "value": 0.6979166666666666,
+        "basis": "4 of 5 priorities had data",
+        "suppressed": false
+      },
+      "confidence": "low",
+      "flags": [
+        "climate_short_record",
+        "crop_value_missing",
+        "crop_value_placeholder",
+        "et0_estimated",
+        "rule_unsupported",
+        "season_overlap",
+        "soil_regional_only",
+        "stage_split_assumed"
+      ],
+      "why_suggested": [
+        "Proposed by the engine as a candidate to explore based on your ranked priorities and rotation rules.",
+        "heat_days was Poor using NASA POWER data for 2020-2025 [heat_days].",
+        "cold_days was Good using NASA POWER data for 2020-2025 [cold_days].",
+        "frost_days was Good using NASA POWER data for 2020-2025 [frost_days]."
+      ],
+      "evidence": [
+        {
+          "indicator": "heat_days",
+          "value_range": "9.0–133.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Poor"
+        },
+        {
+          "indicator": "cold_days",
+          "value_range": "0.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "frost_days",
+          "value_range": "0.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "temp_in_range_pct",
+          "value_range": "61.5–100.0",
+          "unit": "% of days",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "days_above_tmax",
+          "value_range": "9.0–83.5",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Poor"
+        },
+        {
+          "indicator": "days_below_tmin",
+          "value_range": "0.0–15.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "irrigation_dependence",
+          "value_range": "Poor",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Poor"
+        },
+        {
+          "indicator": "water_vs_access",
+          "value_range": "Good",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "ph_fit",
+          "value_range": "Good",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "FAO crop reference + soil record",
+          "band": "Good"
+        },
+        {
+          "indicator": "etc_year_mm",
+          "value_range": "1702.6",
+          "unit": "band",
+          "dataset_badge": "estimated",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "estimated",
+          "dataset": "NASA POWER + FAO-56",
+          "band": "Moderate"
+        },
+        {
+          "indicator": "water_demand_rel",
+          "value_range": null,
+          "unit": "relative",
+          "dataset_badge": "estimated",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "estimated",
+          "dataset": "NASA POWER + FAO-56",
+          "band": "Poor"
+        }
+      ],
+      "benefits": [
+        "This strategy may have a more favorable temp_in_range_pct band (Good) in NASA POWER for 2020-2025 [temp_in_range_pct]."
+      ],
+      "information_gaps": [
+        "The selected climate record is shorter than the recommended period. Use more complete years if available.",
+        "A crop reference value needed for some indicators is missing. Add a cited value to unlock those indicators.",
+        "One or more crop reference values are placeholders. Replace them with locally checked, cited values.",
+        "ET0 estimated from temperatures (Hargreaves–Samani), not measured.",
+        "A triggered rotation rule is shown as a note only because its effect is not supported by a cited source.",
+        "Crop growth windows overlap. Confirm sowing and harvest timing for these varieties locally.",
+        "Soil values are regional grid context, not a field measurement. Add a field soil test.",
+        "Growth stages assumed by a default split (no source row): timing estimates are rough."
+      ],
+      "risks_for_local_review": [
+        "Check local variety suitability and seed availability.",
+        "Confirm sowing dates with local agronomy and the crop calendar.",
+        "Review local pest and disease pressure.",
+        "Check market prices, input costs, and household food or fodder needs.",
+        "Confirm irrigation allocation and any current crop-area rules.",
+        "Review equipment, labor, and harvest timing.",
+        "Check whether overlapping crop windows are workable with local varieties and equipment."
+      ],
+      "sowing_sensitivity": [
+        {
+          "crop_id": "sugar_beet",
+          "sowing_window": "10-01 .. 10-20",
+          "period": "2020-01-01/2025-12-31",
+          "dataset": "NASA POWER + FAO crop reference",
+          "windows": {
+            "start": 5,
+            "mid": 5,
+            "end": 5
+          },
+          "units": {
+            "etc_window_mm": "mm/season",
+            "heat_days": "days/window",
+            "cold_days": "days/window",
+            "frost_days": "days/window",
+            "temp_in_range_pct": "% of days",
+            "rain_window_mm": "mm/window"
+          },
+          "indicators": {
+            "etc_window_mm": {
+              "start": 566.9,
+              "mid": 594.6,
+              "end": 637.6,
+              "spread": 70.7
+            },
+            "heat_days": {
+              "start": 8,
+              "mid": 9,
+              "end": 11,
+              "spread": 3
+            },
+            "cold_days": {
+              "start": 0,
+              "mid": 0,
+              "end": 0,
+              "spread": 0
+            },
+            "frost_days": {
+              "start": 0,
+              "mid": 0,
+              "end": 0,
+              "spread": 0
+            },
+            "temp_in_range_pct": {
+              "start": 66.3,
+              "mid": 69.8,
+              "end": 71.2,
+              "spread": 4.9
+            },
+            "rain_window_mm": {
+              "start": 99.5,
+              "mid": 99.5,
+              "end": 99.3,
+              "spread": 0.2
+            }
+          }
+        },
+        {
+          "crop_id": "cotton",
+          "sowing_window": "03-01 .. 05-31",
+          "period": "2020-01-01/2025-12-31",
+          "dataset": "NASA POWER + FAO crop reference",
+          "windows": {
+            "start": 6,
+            "mid": 6,
+            "end": 6
+          },
+          "units": {
+            "etc_window_mm": "mm/season",
+            "heat_days": "days/window",
+            "cold_days": "days/window",
+            "frost_days": "days/window",
+            "temp_in_range_pct": "% of days",
+            "rain_window_mm": "mm/window"
+          },
+          "indicators": {
+            "etc_window_mm": {
+              "start": 1151.2,
+              "mid": 1108.0,
+              "end": 886.8,
+              "spread": 264.4
+            },
+            "heat_days": {
+              "start": 115.5,
+              "mid": 133.0,
+              "end": 119.0,
+              "spread": 17.5
+            },
+            "cold_days": {
+              "start": 0.0,
+              "mid": 0.0,
+              "end": 0.0,
+              "spread": 0.0
+            },
+            "frost_days": {
+              "start": 0.0,
+              "mid": 0.0,
+              "end": 0.0,
+              "spread": 0.0
+            },
+            "temp_in_range_pct": {
+              "start": 68.5,
+              "mid": 87.0,
+              "end": 79.5,
+              "spread": 18.5
+            },
+            "rain_window_mm": {
+              "start": 32.5,
+              "mid": 5.2,
+              "end": 20.1,
+              "spread": 27.2
+            }
+          }
+        },
+        {
+          "crop_id": "sorghum",
+          "sowing_window": "05-10 .. 06-01",
+          "period": "2020-01-01/2025-12-31",
+          "dataset": "NASA POWER + FAO crop reference",
+          "windows": {
+            "start": 6,
+            "mid": 6,
+            "end": 6
+          },
+          "units": {
+            "etc_window_mm": "mm/season",
+            "heat_days": "days/window",
+            "cold_days": "days/window",
+            "frost_days": "days/window",
+            "temp_in_range_pct": "% of days",
+            "rain_window_mm": "mm/window"
+          },
+          "indicators": {
+            "etc_window_mm": {
+              "start": 702.9,
+              "mid": 682.1,
+              "end": 656.9,
+              "spread": 46.0
+            },
+            "heat_days": {
+              "start": 112.0,
+              "mid": 114.0,
+              "end": 117.0,
+              "spread": 5.0
+            },
+            "cold_days": {
+              "start": 0.0,
+              "mid": 0.0,
+              "end": 0.0,
+              "spread": 0.0
+            },
+            "frost_days": {
+              "start": 0.0,
+              "mid": 0.0,
+              "end": 0.0,
+              "spread": 0.0
+            },
+            "temp_in_range_pct": {
+              "start": 99.6,
+              "mid": 100.0,
+              "end": 100.0,
+              "spread": 0.4
+            },
+            "rain_window_mm": {
+              "start": 0.4,
+              "mid": 0.4,
+              "end": 0.4,
+              "spread": 0.0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "proposed-2",
+      "kind": "proposed",
+      "name": "Candidate 2 (Sugar beet / Cotton / Berseem clover / Maize / Sugar beet / Cotton)",
+      "sequence": [
+        {
+          "slot": "winter",
+          "year": 1,
+          "crop_id": "sugar_beet"
+        },
+        {
+          "slot": "summer",
+          "year": 1,
+          "crop_id": "cotton"
+        },
+        {
+          "slot": "winter",
+          "year": 2,
+          "crop_id": "berseem"
+        },
+        {
+          "slot": "summer",
+          "year": 2,
+          "crop_id": "maize"
+        },
+        {
+          "slot": "winter",
+          "year": 3,
+          "crop_id": "sugar_beet"
+        },
+        {
+          "slot": "summer",
+          "year": 3,
+          "crop_id": "cotton"
+        }
+      ],
+      "indicators": [
+        {
+          "id": "heat_days",
+          "label": "Heat exposure",
+          "median": 64.5,
+          "min": 9.0,
+          "max": 133.0,
+          "unit": "days/window",
+          "band": "Poor",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "cold_days",
+          "label": "Cold exposure",
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "unit": "days/window",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "frost_days",
+          "label": "Frost exposure",
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "unit": "days/window",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "temp_in_range_pct",
+          "label": "Temperature suitability",
+          "median": 78.375,
+          "min": 61.5,
+          "max": 96.65,
+          "unit": "% of days",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "days_above_tmax",
+          "label": "Days above crop maximum",
+          "median": 9.5,
+          "min": 0.0,
+          "max": 83.5,
+          "unit": "days/window",
+          "band": "Moderate",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "days_below_tmin",
+          "label": "Days below crop minimum",
+          "median": 0.0,
+          "min": 0.0,
+          "max": 15.0,
+          "unit": "days/window",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "rain_window_mm",
+          "label": "Rainfall",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "mm/window",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "etc_window_mm",
+          "label": "Estimated crop water need (ETc)",
+          "median": 690.3575000000001,
+          "min": 536.73,
+          "max": 1108.025,
+          "unit": "mm/season",
+          "band": "Unknown",
+          "status": "estimated",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 22
+        },
+        {
+          "id": "rain_coverage_pct",
+          "label": "Rain coverage of ETc",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "%",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 22
+        },
+        {
+          "id": "irrigation_dependence",
+          "label": "Irrigation dependence",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Poor",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "water_vs_access",
+          "label": "Water demand vs reported access",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "ph_fit",
+          "label": "Soil pH fit",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "FAO crop reference + soil record",
+          "n_windows": 22
+        },
+        {
+          "id": "salinity_fit",
+          "label": "Salinity fit",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "FAO crop reference + soil record",
+          "n_windows": 22
+        },
+        {
+          "id": "drought_sensitivity",
+          "label": "Crop drought sensitivity",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "class",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "FAO crop reference + soil record",
+          "n_windows": 22
+        },
+        {
+          "id": "etc_year_mm",
+          "label": "etc year mm",
+          "median": 1702.645,
+          "min": 1702.645,
+          "max": 1702.645,
+          "unit": "band",
+          "band": "Moderate",
+          "status": "estimated",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 22
+        },
+        {
+          "id": "water_demand_rel",
+          "label": "Relative annual ETc",
+          "median": 1.0,
+          "min": null,
+          "max": null,
+          "unit": "relative",
+          "band": "Poor",
+          "status": "estimated",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 22
+        }
+      ],
+      "priority_results": {
+        "reduce_water_use": {
+          "band": "Poor",
+          "indicators": [
+            "water_demand_rel",
+            "irrigation_dependence",
+            "water_vs_access"
+          ]
+        },
+        "support_soil_health": {
+          "band": "Good",
+          "indicators": [
+            "ph_fit",
+            "salinity_fit"
+          ]
+        },
+        "improve_climate_resilience": {
+          "band": "Moderate",
+          "indicators": [
+            "heat_days",
+            "cold_days",
+            "frost_days",
+            "days_above_tmax",
+            "drought_sensitivity"
+          ]
+        },
+        "maintain_productivity": {
+          "band": "Good",
+          "indicators": [
+            "temp_in_range_pct",
+            "days_above_tmax",
+            "ph_fit",
+            "salinity_fit"
+          ]
+        },
+        "budget_market": {
+          "band": "Unknown",
+          "indicators": []
+        }
+      },
+      "overall": {
+        "band": "Good",
+        "value": 0.7925347222222223,
+        "basis": "4 of 5 priorities had data",
+        "suppressed": false
+      },
+      "confidence": "low",
+      "flags": [
+        "climate_short_record",
+        "crop_value_missing",
+        "crop_value_placeholder",
+        "et0_estimated",
+        "rule_unsupported",
+        "season_overlap",
+        "soil_regional_only",
+        "stage_split_assumed"
+      ],
+      "why_suggested": [
+        "Proposed by the engine as a candidate to explore based on your ranked priorities and rotation rules.",
+        "heat_days was Poor using NASA POWER data for 2020-2025 [heat_days].",
+        "cold_days was Good using NASA POWER data for 2020-2025 [cold_days].",
+        "frost_days was Good using NASA POWER data for 2020-2025 [frost_days]."
+      ],
+      "evidence": [
+        {
+          "indicator": "heat_days",
+          "value_range": "9.0–133.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Poor"
+        },
+        {
+          "indicator": "cold_days",
+          "value_range": "0.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "frost_days",
+          "value_range": "0.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "temp_in_range_pct",
+          "value_range": "61.5–96.7",
+          "unit": "% of days",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "days_above_tmax",
+          "value_range": "0.0–83.5",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Moderate"
+        },
+        {
+          "indicator": "days_below_tmin",
+          "value_range": "0.0–15.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "irrigation_dependence",
+          "value_range": "Poor",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Poor"
+        },
+        {
+          "indicator": "water_vs_access",
+          "value_range": "Good",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "ph_fit",
+          "value_range": "Good",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "FAO crop reference + soil record",
+          "band": "Good"
+        },
+        {
+          "indicator": "etc_year_mm",
+          "value_range": "1702.6",
+          "unit": "band",
+          "dataset_badge": "estimated",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "estimated",
+          "dataset": "NASA POWER + FAO-56",
+          "band": "Moderate"
+        },
+        {
+          "indicator": "water_demand_rel",
+          "value_range": null,
+          "unit": "relative",
+          "dataset_badge": "estimated",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "estimated",
+          "dataset": "NASA POWER + FAO-56",
+          "band": "Poor"
+        }
+      ],
+      "benefits": [
+        "This strategy may have a more favorable temp_in_range_pct band (Good) in NASA POWER for 2020-2025 [temp_in_range_pct].",
+        "This strategy may have a more favorable days_above_tmax band (Moderate) in NASA POWER for 2020-2025 [days_above_tmax]."
+      ],
+      "information_gaps": [
+        "The selected climate record is shorter than the recommended period. Use more complete years if available.",
+        "A crop reference value needed for some indicators is missing. Add a cited value to unlock those indicators.",
+        "One or more crop reference values are placeholders. Replace them with locally checked, cited values.",
+        "ET0 estimated from temperatures (Hargreaves–Samani), not measured.",
+        "A triggered rotation rule is shown as a note only because its effect is not supported by a cited source.",
+        "Crop growth windows overlap. Confirm sowing and harvest timing for these varieties locally.",
+        "Soil values are regional grid context, not a field measurement. Add a field soil test.",
+        "Growth stages assumed by a default split (no source row): timing estimates are rough."
+      ],
+      "risks_for_local_review": [
+        "Check local variety suitability and seed availability.",
+        "Confirm sowing dates with local agronomy and the crop calendar.",
+        "Review local pest and disease pressure.",
+        "Check market prices, input costs, and household food or fodder needs.",
+        "Confirm irrigation allocation and any current crop-area rules.",
+        "Review equipment, labor, and harvest timing.",
+        "Check whether overlapping crop windows are workable with local varieties and equipment."
+      ],
+      "sowing_sensitivity": [
+        {
+          "crop_id": "sugar_beet",
+          "sowing_window": "10-01 .. 10-20",
+          "period": "2020-01-01/2025-12-31",
+          "dataset": "NASA POWER + FAO crop reference",
+          "windows": {
+            "start": 5,
+            "mid": 5,
+            "end": 5
+          },
+          "units": {
+            "etc_window_mm": "mm/season",
+            "heat_days": "days/window",
+            "cold_days": "days/window",
+            "frost_days": "days/window",
+            "temp_in_range_pct": "% of days",
+            "rain_window_mm": "mm/window"
+          },
+          "indicators": {
+            "etc_window_mm": {
+              "start": 566.9,
+              "mid": 594.6,
+              "end": 637.6,
+              "spread": 70.7
+            },
+            "heat_days": {
+              "start": 8,
+              "mid": 9,
+              "end": 11,
+              "spread": 3
+            },
+            "cold_days": {
+              "start": 0,
+              "mid": 0,
+              "end": 0,
+              "spread": 0
+            },
+            "frost_days": {
+              "start": 0,
+              "mid": 0,
+              "end": 0,
+              "spread": 0
+            },
+            "temp_in_range_pct": {
+              "start": 66.3,
+              "mid": 69.8,
+              "end": 71.2,
+              "spread": 4.9
+            },
+            "rain_window_mm": {
+              "start": 99.5,
+              "mid": 99.5,
+              "end": 99.3,
+              "spread": 0.2
+            }
+          }
+        },
+        {
+          "crop_id": "cotton",
+          "sowing_window": "03-01 .. 05-31",
+          "period": "2020-01-01/2025-12-31",
+          "dataset": "NASA POWER + FAO crop reference",
+          "windows": {
+            "start": 6,
+            "mid": 6,
+            "end": 6
+          },
+          "units": {
+            "etc_window_mm": "mm/season",
+            "heat_days": "days/window",
+            "cold_days": "days/window",
+            "frost_days": "days/window",
+            "temp_in_range_pct": "% of days",
+            "rain_window_mm": "mm/window"
+          },
+          "indicators": {
+            "etc_window_mm": {
+              "start": 1151.2,
+              "mid": 1108.0,
+              "end": 886.8,
+              "spread": 264.4
+            },
+            "heat_days": {
+              "start": 115.5,
+              "mid": 133.0,
+              "end": 119.0,
+              "spread": 17.5
+            },
+            "cold_days": {
+              "start": 0.0,
+              "mid": 0.0,
+              "end": 0.0,
+              "spread": 0.0
+            },
+            "frost_days": {
+              "start": 0.0,
+              "mid": 0.0,
+              "end": 0.0,
+              "spread": 0.0
+            },
+            "temp_in_range_pct": {
+              "start": 68.5,
+              "mid": 87.0,
+              "end": 79.5,
+              "spread": 18.5
+            },
+            "rain_window_mm": {
+              "start": 32.5,
+              "mid": 5.2,
+              "end": 20.1,
+              "spread": 27.2
+            }
+          }
+        },
+        {
+          "crop_id": "maize",
+          "sowing_window": "05-01 .. 07-01",
+          "period": "2020-01-01/2025-12-31",
+          "dataset": "NASA POWER + FAO crop reference",
+          "windows": {
+            "start": 6,
+            "mid": 6,
+            "end": 6
+          },
+          "units": {
+            "etc_window_mm": "mm/season",
+            "heat_days": "days/window",
+            "cold_days": "days/window",
+            "frost_days": "days/window",
+            "temp_in_range_pct": "% of days",
+            "rain_window_mm": "mm/window"
+          },
+          "indicators": {
+            "etc_window_mm": {
+              "start": 890.4,
+              "mid": 786.1,
+              "end": 626.9,
+              "spread": 263.5
+            },
+            "heat_days": {
+              "start": 125.0,
+              "mid": 119.0,
+              "end": 91.0,
+              "spread": 34.0
+            },
+            "cold_days": {
+              "start": 0.0,
+              "mid": 0.0,
+              "end": 0.0,
+              "spread": 0.0
+            },
+            "frost_days": {
+              "start": 0.0,
+              "mid": 0.0,
+              "end": 0.0,
+              "spread": 0.0
+            },
+            "temp_in_range_pct": {
+              "start": 96.7,
+              "mid": 96.7,
+              "end": 96.0,
+              "spread": 0.7
+            },
+            "rain_window_mm": {
+              "start": 0.4,
+              "mid": 1.5,
+              "end": 15.4,
+              "spread": 15.0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "proposed-3",
+      "kind": "proposed",
+      "name": "Candidate 3 (Berseem clover / Cotton / Sugar beet / Sorghum / Berseem clover / Cotton)",
+      "sequence": [
+        {
+          "slot": "winter",
+          "year": 1,
+          "crop_id": "berseem"
+        },
+        {
+          "slot": "summer",
+          "year": 1,
+          "crop_id": "cotton"
+        },
+        {
+          "slot": "winter",
+          "year": 2,
+          "crop_id": "sugar_beet"
+        },
+        {
+          "slot": "summer",
+          "year": 2,
+          "crop_id": "sorghum"
+        },
+        {
+          "slot": "winter",
+          "year": 3,
+          "crop_id": "berseem"
+        },
+        {
+          "slot": "summer",
+          "year": 3,
+          "crop_id": "cotton"
+        }
+      ],
+      "indicators": [
+        {
+          "id": "heat_days",
+          "label": "Heat exposure",
+          "median": 62.0,
+          "min": 9.0,
+          "max": 133.0,
+          "unit": "days/window",
+          "band": "Poor",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "cold_days",
+          "label": "Cold exposure",
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "unit": "days/window",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "frost_days",
+          "label": "Frost exposure",
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "unit": "days/window",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "temp_in_range_pct",
+          "label": "Temperature suitability",
+          "median": 78.375,
+          "min": 61.5,
+          "max": 100.0,
+          "unit": "% of days",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "days_above_tmax",
+          "label": "Days above crop maximum",
+          "median": 22.0,
+          "min": 9.0,
+          "max": 83.5,
+          "unit": "days/window",
+          "band": "Poor",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "days_below_tmin",
+          "label": "Days below crop minimum",
+          "median": 0.0,
+          "min": 0.0,
+          "max": 15.0,
+          "unit": "days/window",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "rain_window_mm",
+          "label": "Rainfall",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "mm/window",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "etc_window_mm",
+          "label": "Estimated crop water need (ETc)",
+          "median": 638.3800000000001,
+          "min": 536.73,
+          "max": 1108.025,
+          "unit": "mm/season",
+          "band": "Unknown",
+          "status": "estimated",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 22
+        },
+        {
+          "id": "rain_coverage_pct",
+          "label": "Rain coverage of ETc",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "%",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 22
+        },
+        {
+          "id": "irrigation_dependence",
+          "label": "Irrigation dependence",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Poor",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "water_vs_access",
+          "label": "Water demand vs reported access",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "NASA POWER",
+          "n_windows": 22
+        },
+        {
+          "id": "ph_fit",
+          "label": "Soil pH fit",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Good",
+          "status": "observed",
+          "definition_key": null,
+          "dataset": "FAO crop reference + soil record",
+          "n_windows": 22
+        },
+        {
+          "id": "salinity_fit",
+          "label": "Salinity fit",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "band",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "FAO crop reference + soil record",
+          "n_windows": 22
+        },
+        {
+          "id": "drought_sensitivity",
+          "label": "Crop drought sensitivity",
+          "median": null,
+          "min": null,
+          "max": null,
+          "unit": "class",
+          "band": "Unknown",
+          "status": "unknown",
+          "definition_key": null,
+          "dataset": "FAO crop reference + soil record",
+          "n_windows": 22
+        },
+        {
+          "id": "etc_year_mm",
+          "label": "etc year mm",
+          "median": 1644.755,
+          "min": 1644.755,
+          "max": 1644.755,
+          "unit": "band",
+          "band": "Moderate",
+          "status": "estimated",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 22
+        },
+        {
+          "id": "water_demand_rel",
+          "label": "Relative annual ETc",
+          "median": 0.9659999588874957,
+          "min": null,
+          "max": null,
+          "unit": "relative",
+          "band": "Poor",
+          "status": "estimated",
+          "definition_key": null,
+          "dataset": "NASA POWER + FAO-56",
+          "n_windows": 22
+        }
+      ],
+      "priority_results": {
+        "reduce_water_use": {
+          "band": "Poor",
+          "indicators": [
+            "water_demand_rel",
+            "irrigation_dependence",
+            "water_vs_access"
+          ]
+        },
+        "support_soil_health": {
+          "band": "Good",
+          "indicators": [
+            "ph_fit",
+            "salinity_fit"
+          ]
+        },
+        "improve_climate_resilience": {
+          "band": "Moderate",
+          "indicators": [
+            "heat_days",
+            "cold_days",
+            "frost_days",
+            "days_above_tmax",
+            "drought_sensitivity"
+          ]
+        },
+        "maintain_productivity": {
+          "band": "Moderate",
+          "indicators": [
+            "temp_in_range_pct",
+            "days_above_tmax",
+            "ph_fit",
+            "salinity_fit"
+          ]
+        },
+        "budget_market": {
+          "band": "Unknown",
+          "indicators": []
+        }
+      },
+      "overall": {
+        "band": "Good",
+        "value": 0.6979166666666666,
+        "basis": "4 of 5 priorities had data",
+        "suppressed": false
+      },
+      "confidence": "low",
+      "flags": [
+        "climate_short_record",
+        "crop_value_missing",
+        "crop_value_placeholder",
+        "et0_estimated",
+        "rule_unsupported",
+        "season_overlap",
+        "soil_regional_only",
+        "stage_split_assumed"
+      ],
+      "why_suggested": [
+        "Proposed by the engine as a candidate to explore based on your ranked priorities and rotation rules.",
+        "heat_days was Poor using NASA POWER data for 2020-2025 [heat_days].",
+        "cold_days was Good using NASA POWER data for 2020-2025 [cold_days].",
+        "frost_days was Good using NASA POWER data for 2020-2025 [frost_days]."
+      ],
+      "evidence": [
+        {
+          "indicator": "heat_days",
+          "value_range": "9.0–133.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Poor"
+        },
+        {
+          "indicator": "cold_days",
+          "value_range": "0.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "frost_days",
+          "value_range": "0.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "temp_in_range_pct",
+          "value_range": "61.5–100.0",
+          "unit": "% of days",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "days_above_tmax",
+          "value_range": "9.0–83.5",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Poor"
+        },
+        {
+          "indicator": "days_below_tmin",
+          "value_range": "0.0–15.0",
+          "unit": "days/window",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "irrigation_dependence",
+          "value_range": "Poor",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Poor"
+        },
+        {
+          "indicator": "water_vs_access",
+          "value_range": "Good",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "NASA POWER",
+          "band": "Good"
+        },
+        {
+          "indicator": "ph_fit",
+          "value_range": "Good",
+          "unit": "band",
+          "dataset_badge": "observed",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "observed",
+          "dataset": "FAO crop reference + soil record",
+          "band": "Good"
+        },
+        {
+          "indicator": "etc_year_mm",
+          "value_range": "1644.8",
+          "unit": "band",
+          "dataset_badge": "estimated",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "estimated",
+          "dataset": "NASA POWER + FAO-56",
+          "band": "Moderate"
+        },
+        {
+          "indicator": "water_demand_rel",
+          "value_range": null,
+          "unit": "relative",
+          "dataset_badge": "estimated",
+          "period": "2020-2025",
+          "n_windows": 22,
+          "status": "estimated",
+          "dataset": "NASA POWER + FAO-56",
+          "band": "Poor"
+        }
+      ],
+      "benefits": [
+        "This strategy may have a more favorable temp_in_range_pct band (Good) in NASA POWER for 2020-2025 [temp_in_range_pct]."
+      ],
+      "information_gaps": [
+        "The selected climate record is shorter than the recommended period. Use more complete years if available.",
+        "A crop reference value needed for some indicators is missing. Add a cited value to unlock those indicators.",
+        "One or more crop reference values are placeholders. Replace them with locally checked, cited values.",
+        "ET0 estimated from temperatures (Hargreaves–Samani), not measured.",
+        "A triggered rotation rule is shown as a note only because its effect is not supported by a cited source.",
+        "Crop growth windows overlap. Confirm sowing and harvest timing for these varieties locally.",
+        "Soil values are regional grid context, not a field measurement. Add a field soil test.",
+        "Growth stages assumed by a default split (no source row): timing estimates are rough."
+      ],
+      "risks_for_local_review": [
+        "Check local variety suitability and seed availability.",
+        "Confirm sowing dates with local agronomy and the crop calendar.",
+        "Review local pest and disease pressure.",
+        "Check market prices, input costs, and household food or fodder needs.",
+        "Confirm irrigation allocation and any current crop-area rules.",
+        "Review equipment, labor, and harvest timing.",
+        "Check whether overlapping crop windows are workable with local varieties and equipment."
+      ],
+      "sowing_sensitivity": [
+        {
+          "crop_id": "cotton",
+          "sowing_window": "03-01 .. 05-31",
+          "period": "2020-01-01/2025-12-31",
+          "dataset": "NASA POWER + FAO crop reference",
+          "windows": {
+            "start": 6,
+            "mid": 6,
+            "end": 6
+          },
+          "units": {
+            "etc_window_mm": "mm/season",
+            "heat_days": "days/window",
+            "cold_days": "days/window",
+            "frost_days": "days/window",
+            "temp_in_range_pct": "% of days",
+            "rain_window_mm": "mm/window"
+          },
+          "indicators": {
+            "etc_window_mm": {
+              "start": 1151.2,
+              "mid": 1108.0,
+              "end": 886.8,
+              "spread": 264.4
+            },
+            "heat_days": {
+              "start": 115.5,
+              "mid": 133.0,
+              "end": 119.0,
+              "spread": 17.5
+            },
+            "cold_days": {
+              "start": 0.0,
+              "mid": 0.0,
+              "end": 0.0,
+              "spread": 0.0
+            },
+            "frost_days": {
+              "start": 0.0,
+              "mid": 0.0,
+              "end": 0.0,
+              "spread": 0.0
+            },
+            "temp_in_range_pct": {
+              "start": 68.5,
+              "mid": 87.0,
+              "end": 79.5,
+              "spread": 18.5
+            },
+            "rain_window_mm": {
+              "start": 32.5,
+              "mid": 5.2,
+              "end": 20.1,
+              "spread": 27.2
+            }
+          }
+        },
+        {
+          "crop_id": "sugar_beet",
+          "sowing_window": "10-01 .. 10-20",
+          "period": "2020-01-01/2025-12-31",
+          "dataset": "NASA POWER + FAO crop reference",
+          "windows": {
+            "start": 5,
+            "mid": 5,
+            "end": 5
+          },
+          "units": {
+            "etc_window_mm": "mm/season",
+            "heat_days": "days/window",
+            "cold_days": "days/window",
+            "frost_days": "days/window",
+            "temp_in_range_pct": "% of days",
+            "rain_window_mm": "mm/window"
+          },
+          "indicators": {
+            "etc_window_mm": {
+              "start": 566.9,
+              "mid": 594.6,
+              "end": 637.6,
+              "spread": 70.7
+            },
+            "heat_days": {
+              "start": 8,
+              "mid": 9,
+              "end": 11,
+              "spread": 3
+            },
+            "cold_days": {
+              "start": 0,
+              "mid": 0,
+              "end": 0,
+              "spread": 0
+            },
+            "frost_days": {
+              "start": 0,
+              "mid": 0,
+              "end": 0,
+              "spread": 0
+            },
+            "temp_in_range_pct": {
+              "start": 66.3,
+              "mid": 69.8,
+              "end": 71.2,
+              "spread": 4.9
+            },
+            "rain_window_mm": {
+              "start": 99.5,
+              "mid": 99.5,
+              "end": 99.3,
+              "spread": 0.2
+            }
+          }
+        },
+        {
+          "crop_id": "sorghum",
+          "sowing_window": "05-10 .. 06-01",
+          "period": "2020-01-01/2025-12-31",
+          "dataset": "NASA POWER + FAO crop reference",
+          "windows": {
+            "start": 6,
+            "mid": 6,
+            "end": 6
+          },
+          "units": {
+            "etc_window_mm": "mm/season",
+            "heat_days": "days/window",
+            "cold_days": "days/window",
+            "frost_days": "days/window",
+            "temp_in_range_pct": "% of days",
+            "rain_window_mm": "mm/window"
+          },
+          "indicators": {
+            "etc_window_mm": {
+              "start": 702.9,
+              "mid": 682.1,
+              "end": 656.9,
+              "spread": 46.0
+            },
+            "heat_days": {
+              "start": 112.0,
+              "mid": 114.0,
+              "end": 117.0,
+              "spread": 5.0
+            },
+            "cold_days": {
+              "start": 0.0,
+              "mid": 0.0,
+              "end": 0.0,
+              "spread": 0.0
+            },
+            "frost_days": {
+              "start": 0.0,
+              "mid": 0.0,
+              "end": 0.0,
+              "spread": 0.0
+            },
+            "temp_in_range_pct": {
+              "start": 99.6,
+              "mid": 100.0,
+              "end": 100.0,
+              "spread": 0.4
+            },
+            "rain_window_mm": {
+              "start": 0.4,
+              "mid": 0.4,
+              "end": 0.4,
+              "spread": 0.0
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "order": [
+      "proposed-2",
+      "proposed-1",
+      "proposed-3",
+      "existing"
+    ],
+    "too_close": [
+      [
+        "proposed-1",
+        "proposed-3"
+      ]
+    ],
+    "order_equal_weights": [
+      "proposed-2",
+      "existing",
+      "proposed-1",
+      "proposed-3"
+    ],
+    "ranking_stable": false,
+    "priority_sensitivity": {
+      "trials": 100,
+      "seed": 42,
+      "perturbation_range": "±20%",
+      "order_stable_pct": 100.0,
+      "top_stable_pct": 100.0,
+      "is_stable": true,
+      "summary": "Ranking order preserved in 100.0% of 100 priority weight perturbations (±20%); top-ranked candidate unchanged in 100.0%."
+    }
+  },
+  "limitations": [
+    "Climate change can shift some risks; salinity, soil degradation, and irrigation shortage also depend on management, water quality, and infrastructure.",
+    "Frost and heavy rain are not generalised to all of Egypt; local area and season matter.",
+    "The Mansoura coordinates are illustrative, not a real field location.",
+    "This comparison is not field-specific advice; verify the inputs and sources locally.",
+    "Each indicator should be read with its source, update date, and accuracy limits."
+  ],
+  "local_review": [
+    "Confirm crop varieties, sowing windows, and seed availability.",
+    "Review pests, diseases, costs, market needs, and equipment with local experts.",
+    "Check irrigation allocation, crop-area rules, and field soil EC."
+  ]
+}

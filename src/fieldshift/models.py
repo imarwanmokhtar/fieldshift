@@ -4,6 +4,7 @@ Names follow CLAUDE.md Part 4 (`models.py`) and the result.json contract in
 Part 8.2. Every number that reaches the user carries provenance via
 ValueWithProvenance / DataSource.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -134,6 +135,7 @@ class Comparison(BaseModel):
     too_close: list[list[str]] = Field(default_factory=list)
     order_equal_weights: list[str] = Field(default_factory=list)
     ranking_stable: bool = True
+    priority_sensitivity: dict[str, Any] | None = None
 
 
 class RunResult(BaseModel):
@@ -147,6 +149,7 @@ class RunResult(BaseModel):
     data_sources: list[dict[str, Any]] = Field(default_factory=list)
     quality_flags: list[QualityFlag] = Field(default_factory=list)
     climate_summary: dict[str, Any] = Field(default_factory=dict)
+    optional_context: dict[str, Any] = Field(default_factory=dict)
     crops_used: list[dict[str, Any]] = Field(default_factory=list)
     strategies: list[Strategy] = Field(default_factory=list)
     comparison: Comparison = Field(default_factory=Comparison)
@@ -170,6 +173,7 @@ class Strategy(BaseModel):
     benefits: list[str] = Field(default_factory=list)
     information_gaps: list[str] = Field(default_factory=list)
     risks_for_local_review: list[str] = Field(default_factory=list)
+    sowing_sensitivity: list[dict[str, Any]] = Field(default_factory=list)
 
 
 # resolve forward ref

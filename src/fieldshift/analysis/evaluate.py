@@ -4,6 +4,7 @@ The module joins cleaned daily climate, the sourced crop table, a soil record,
 and user supplied sequences. It returns score-bearing Strategy models; wording
 and exports belong to Phase 7.
 """
+
 from __future__ import annotations
 
 from datetime import date
@@ -27,6 +28,7 @@ from .confidence import confidence_level
 from .priorities import PRIORITY_INDICATORS, build_weights
 from .rotation import evaluate_rules
 from .seasons import crop_window_dates, window_has_no_missing
+from .sensitivity import priority_sensitivity, sowing_date_sensitivity
 from .soilfit import ph_fit, salinity_fit
 from .water import (
     etc_window,
@@ -60,13 +62,16 @@ _DEFAULT_BANDS = {
     "temp_in_range_pct": {"good_min": 70, "moderate_min": 40},
     "days_above_tmax": {"good_max": 2, "moderate_max": 10},
     "days_below_tmin": {"good_max": 0, "moderate_max": 3},
-    "water_demand_rel": {"good_max": .75, "moderate_max": .90},
-    "overall_too_close": .05,
+    "water_demand_rel": {"good_max": 0.75, "moderate_max": 0.90},
+    "overall_too_close": 0.05,
 }
-_DEFAULT_THRESHOLDS = {"hot_day_tmax_c": 35, "cold_day_tmin_c": 5,
-                      "frost_day_tmin_c": 0, "min_windows": 3,
-                      "stage_split_if_missing": {"ini": .15, "dev": .25,
-                                                 "mid": .40, "late": .20}}
+_DEFAULT_THRESHOLDS = {
+    "hot_day_tmax_c": 35,
+    "cold_day_tmin_c": 5,
+    "frost_day_tmin_c": 0,
+    "min_windows": 3,
+    "stage_split_if_missing": {"ini": 0.15, "dev": 0.25, "mid": 0.40, "late": 0.20},
+}
 
 
 def _v(crop: dict, field: str) -> Any:
@@ -146,12 +151,14 @@ def _metric_values(
     etc_values: list[float] = []
     coverages: list[float] = []
     for _, _, frame in windows:
-        window_dicts.append({
-            "tmax": frame["t_max_c"].tolist(),
-            "tmin": frame["t_min_c"].tolist(),
-            "tmean": frame["t_mean_c"].tolist(),
-            "rain": frame["rain_mm"].tolist(),
-        })
+        window_dicts.append(
+            {
+                "tmax": frame["t_max_c"].tolist(),
+                "tmin": frame["t_min_c"].tolist(),
+                "tmean": frame["t_mean_c"].tolist(),
+                "rain": frame["rain_mm"].tolist(),
+            }
+        )
         duration = _v(crop, "growth_duration_days")
         kc_data = _v(crop, "kc")
         stage_data = _v(crop, "stage_days")
@@ -175,21 +182,30 @@ def _metric_values(
         ref_min, ref_max = reference.get("min"), reference.get("max")
         if ref_min is not None and ref_max is not None:
             median_etc = aggregate_windows(etc_values)["median"]
-            if median_etc < ref_min * .7 or median_etc > ref_max * 1.3:
+            if median_etc < ref_min * 0.7 or median_etc > ref_max * 1.3:
                 flags.add("etc_vs_reference_gap")
 
     climate = exposure_indicators(window_dicts, crop, thresholds)
     metrics: dict[str, dict] = {}
-    for key in ("heat_days", "cold_days", "frost_days", "temp_in_range_pct",
-                "days_above_tmax", "days_below_tmin", "rain_window_mm"):
+    for key in (
+        "heat_days",
+        "cold_days",
+        "frost_days",
+        "temp_in_range_pct",
+        "days_above_tmax",
+        "days_below_tmin",
+        "rain_window_mm",
+    ):
         stats = climate.get(key)
         metrics[key] = stats or aggregate_windows([])
     metrics["etc_window_mm"] = aggregate_windows(etc_values)
     metrics["rain_coverage_pct"] = aggregate_windows(coverages)
 
     thresholds_by_id = {
-        "heat_days": "heat_days", "cold_days": "cold_days",
-        "frost_days": "frost_days", "days_above_tmax": "days_above_tmax",
+        "heat_days": "heat_days",
+        "cold_days": "cold_days",
+        "frost_days": "frost_days",
+        "days_above_tmax": "days_above_tmax",
         "days_below_tmin": "days_below_tmin",
     }
     for indicator, rule_id in thresholds_by_id.items():
@@ -197,17 +213,22 @@ def _metric_values(
         stats["band"] = _band(stats.get("median"), bands.get(rule_id, {}))
     for indicator in ("temp_in_range_pct",):
         stats = metrics.get(indicator, {})
-        stats["band"] = _band(stats.get("median"), bands.get(indicator, {}),
-                               higher_is_better=True)
+        stats["band"] = _band(stats.get("median"), bands.get(indicator, {}), higher_is_better=True)
 
     et_stats = metrics["etc_window_mm"]
     et_stats["band"] = "Unknown" if et_stats["median"] is None else "Moderate"
     coverage_stats = metrics["rain_coverage_pct"]
     dependence_values = [irrigation_dependence_band(c) for c in coverages]
     dependence_stats = aggregate_windows(coverages)
-    dep_median = ("low" if dependence_values and coverage_stats["median"] >= 75 else
-                  "moderate" if dependence_values and coverage_stats["median"] >= 25 else
-                  "high" if dependence_values else "Unknown")
+    dep_median = (
+        "low"
+        if dependence_values and coverage_stats["median"] >= 75
+        else "moderate"
+        if dependence_values and coverage_stats["median"] >= 25
+        else "high"
+        if dependence_values
+        else "Unknown"
+    )
     dependence_stats["category"] = dep_median
     dependence_stats["band"] = {"low": "Good", "moderate": "Moderate", "high": "Poor"}.get(
         dep_median, "Unknown"
@@ -226,11 +247,8 @@ def _metric_values(
     metrics["ph_fit"] = {"median": None, "band": ph_band}
     metrics["salinity_fit"] = {"median": None, "band": sal_band}
     drought = _v(crop, "drought_sensitivity")
-    drought_band = {"low": "Good", "medium": "Moderate", "high": "Poor"}.get(
-        drought, "Unknown"
-    )
-    metrics["drought_sensitivity"] = {"median": None, "category": drought,
-                                       "band": drought_band}
+    drought_band = {"low": "Good", "medium": "Moderate", "high": "Poor"}.get(drought, "Unknown")
+    metrics["drought_sensitivity"] = {"median": None, "category": drought, "band": drought_band}
 
     if not windows:
         for key, value in metrics.items():
@@ -240,8 +258,15 @@ def _metric_values(
         flags.add("soil_unknown")
     if ec is None:
         flags.add("salinity_unassessed")
-    for field in ("growth_duration_days", "stage_days", "kc", "temperature_c",
-                  "drought_sensitivity", "salinity_threshold_ece_dsm", "soil_ph_range"):
+    for field in (
+        "growth_duration_days",
+        "stage_days",
+        "kc",
+        "temperature_c",
+        "drought_sensitivity",
+        "salinity_threshold_ece_dsm",
+        "soil_ph_range",
+    ):
         status = _status(crop, field)
         if status == "placeholder":
             flags.add("crop_value_placeholder")
@@ -288,8 +313,10 @@ def evaluate_rotation_set(
     thresholds = {**_DEFAULT_THRESHOLDS, **(thresholds or {})}
     bands = {**_DEFAULT_BANDS, **(bands or {})}
     rules = rules or []
-    stage_split_defaults = (doc.get("defaults", {}).get("stage_split_if_missing") or
-                            _DEFAULT_THRESHOLDS["stage_split_if_missing"])
+    stage_split_defaults = (
+        doc.get("defaults", {}).get("stage_split_if_missing")
+        or _DEFAULT_THRESHOLDS["stage_split_if_missing"]
+    )
     priorities = ranked_priorities or []
     skipped = skipped_priorities or []
     global_flags = set(flags or []) | set(soil_flags(soil_record))
@@ -297,7 +324,7 @@ def evaluate_rotation_set(
         global_flags.add("baseline_assumed")
     required_climate = ["t_mean_c", "t_max_c", "t_min_c", "rain_mm", "solar_mj_m2"]
     present_climate = [col for col in required_climate if col in daily_climate]
-    if present_climate and any(daily_climate[col].isna().mean() >= .05 for col in present_climate):
+    if present_climate and any(daily_climate[col].isna().mean() >= 0.05 for col in present_climate):
         global_flags.add("climate_missing_values")
     if "date" in daily_climate:
         dates = pd.to_datetime(daily_climate["date"], errors="coerce").dropna().sort_values()
@@ -306,12 +333,19 @@ def evaluate_rotation_set(
             missing_day_share = 1 - dates.nunique() / span_days
         else:
             missing_day_share = 0.0
-        if missing_day_share >= .05:
+        if missing_day_share >= 0.05:
             global_flags.add("date_gaps")
 
     prepared: list[dict] = []
-    specs = [{"id": "existing", "name": "Existing rotation", "kind": "existing",
-              "sequence": existing_sequence}, *alternatives]
+    specs = [
+        {
+            "id": "existing",
+            "name": "Existing rotation",
+            "kind": "existing",
+            "sequence": existing_sequence,
+        },
+        *alternatives,
+    ]
     for spec in specs:
         sequence = spec.get("sequence", [])
         seq_flags = set(global_flags)
@@ -325,16 +359,21 @@ def evaluate_rotation_set(
             if cid not in crops:
                 seq_flags.update({"crop_not_in_reference", "crop_value_missing"})
                 per_crop[cid] = {
-                    key: {"median": None, "min": None, "max": None, "n": 0,
-                          "band": "Unknown"}
+                    key: {"median": None, "min": None, "max": None, "n": 0, "band": "Unknown"}
                     for key in (*_LABELS, "rain_window_mm")
                 }
                 windows_per_crop.append(0)
                 continue
             if cid not in per_crop:
                 values, crop_flags, count, _ = _metric_values(
-                    daily_climate, crops[cid], latitude, soil_record,
-                    water_availability, thresholds, bands, stage_split_defaults,
+                    daily_climate,
+                    crops[cid],
+                    latitude,
+                    soil_record,
+                    water_availability,
+                    thresholds,
+                    bands,
+                    stage_split_defaults,
                 )
                 per_crop[cid] = values
                 seq_flags.update(crop_flags)
@@ -345,9 +384,13 @@ def evaluate_rotation_set(
         windows_by_crop = {
             cid: [(a, b) for a, b, _ in _complete_windows(daily_climate, crops[cid], latitude)]
             for cid in per_crop
+            if cid in crops
         }
-        chosen_crops = [step.get("crop_id", step.get("crop")) for step in sequence
-                        if step.get("crop_id", step.get("crop")) in windows_by_crop]
+        chosen_crops = [
+            step.get("crop_id", step.get("crop"))
+            for step in sequence
+            if step.get("crop_id", step.get("crop")) in windows_by_crop
+        ]
         for first, second in pairwise(chosen_crops):
             if first != second and any(
                 max(a, c) <= min(b, d)
@@ -386,8 +429,9 @@ def evaluate_rotation_set(
         indicator_data: dict[str, dict] = {}
         for values in per_crop.values():
             for key, val in values.items():
-                indicator_data.setdefault(key, {"median": [], "min": [], "max": [],
-                                                "bands": [], "category": []})
+                indicator_data.setdefault(
+                    key, {"median": [], "min": [], "max": [], "bands": [], "category": []}
+                )
                 for field in ("median", "min", "max"):
                     if val.get(field) is not None:
                         indicator_data[key][field].append(val[field])
@@ -398,7 +442,8 @@ def evaluate_rotation_set(
             "median": [] if etc_year["median"] is None else [etc_year["median"]],
             "min": [] if etc_year["min"] is None else [etc_year["min"]],
             "max": [] if etc_year["max"] is None else [etc_year["max"]],
-            "bands": [], "category": [],
+            "bands": [],
+            "category": [],
         }
         indicators: list[Indicator] = []
         for key, vals in indicator_data.items():
@@ -406,18 +451,25 @@ def evaluate_rotation_set(
             any_unknown = "Unknown" in vals["bands"]
             if key == "etc_year_mm":
                 band = "Unknown" if med["median"] is None else "Moderate"
-            elif key in ("ph_fit", "salinity_fit", "water_vs_access", "irrigation_dependence",
-                         "drought_sensitivity"):
+            elif key in (
+                "ph_fit",
+                "salinity_fit",
+                "water_vs_access",
+                "irrigation_dependence",
+                "drought_sensitivity",
+            ):
                 # Preserve a categorical indicator band without introducing a numeric score.
                 bands_seen = [b for b in vals["bands"] if b != "Unknown"]
-                band_name = ("Unknown" if not bands_seen else
-                             max(set(bands_seen), key=bands_seen.count))
+                band_name = (
+                    "Unknown" if not bands_seen else max(set(bands_seen), key=bands_seen.count)
+                )
                 band = band_name
             elif key not in bands or not bands[key]:
                 band = "Unknown"
             else:
-                band_name = _band(med["median"], bands.get(key, {}),
-                                  higher_is_better=key == "temp_in_range_pct")
+                band_name = _band(
+                    med["median"], bands.get(key, {}), higher_is_better=key == "temp_in_range_pct"
+                )
                 band = band_name
             if key == "drought_sensitivity" and vals["category"]:
                 band = {"low": "Good", "medium": "Moderate", "high": "Poor"}.get(
@@ -427,27 +479,54 @@ def evaluate_rotation_set(
                 band = "Unknown"
                 med = {"median": None, "min": None, "max": None, "n": 0}
             label, unit = _LABELS.get(key, (key.replace("_", " "), "band"))
-            is_categorical = key in ("ph_fit", "salinity_fit", "water_vs_access",
-                                     "irrigation_dependence", "drought_sensitivity")
-            indicators.append(Indicator(
-                id=key, label=label, median=None if is_categorical else med["median"],
-                min=None if is_categorical else med["min"],
-                max=None if is_categorical else med["max"],
-                unit=unit, band=band, status="estimated" if key.startswith("etc") else
-                ("unknown" if band == "Unknown" else "observed"), n_windows=n_windows_total,
-                dataset="NASA POWER + FAO-56" if key.startswith(("etc", "rain_coverage")) else
-                ("NASA POWER" if key not in ("ph_fit", "salinity_fit", "drought_sensitivity")
-                 else "FAO crop reference + soil record"),
-            ))
+            is_categorical = key in (
+                "ph_fit",
+                "salinity_fit",
+                "water_vs_access",
+                "irrigation_dependence",
+                "drought_sensitivity",
+            )
+            indicators.append(
+                Indicator(
+                    id=key,
+                    label=label,
+                    median=None if is_categorical else med["median"],
+                    min=None if is_categorical else med["min"],
+                    max=None if is_categorical else med["max"],
+                    unit=unit,
+                    band=band,
+                    status="estimated"
+                    if key.startswith("etc")
+                    else ("unknown" if band == "Unknown" else "observed"),
+                    n_windows=n_windows_total,
+                    dataset="NASA POWER + FAO-56"
+                    if key.startswith(("etc", "rain_coverage"))
+                    else (
+                        "NASA POWER"
+                        if key not in ("ph_fit", "salinity_fit", "drought_sensitivity")
+                        else "FAO crop reference + soil record"
+                    ),
+                )
+            )
 
         # Cross-strategy water-demand band is assigned after all annual ETc values exist.
-        prepared.append({"id": spec.get("id"), "name": spec.get("name", spec.get("id")),
-                         "kind": spec.get("kind", "template"), "sequence": sequence,
-                         "indicators": indicators, "indicator_data": indicator_data,
-                         "flags": seq_flags, "rule_info": rule_info,
-                         "n_windows": n_windows_total, "confidence_windows": confidence_windows,
-                         "overall_value": None,
-                         "priority_scores": {}, "etc_year": etc_year["median"]})
+        prepared.append(
+            {
+                "id": spec.get("id"),
+                "name": spec.get("name", spec.get("id")),
+                "kind": spec.get("kind", "template"),
+                "sequence": sequence,
+                "indicators": indicators,
+                "indicator_data": indicator_data,
+                "flags": seq_flags,
+                "rule_info": rule_info,
+                "n_windows": n_windows_total,
+                "confidence_windows": confidence_windows,
+                "overall_value": None,
+                "priority_scores": {},
+                "etc_year": etc_year["median"],
+            }
+        )
 
     et_values = [p["etc_year"] for p in prepared if p["etc_year"] is not None]
     max_et = max(et_values) if et_values else None
@@ -459,11 +538,18 @@ def evaluate_rotation_set(
             rel_band = "Similar"
         else:
             rel_band = _band(ratio, bands.get("water_demand_rel", {}))
-        item["indicators"].append(Indicator(
-            id="water_demand_rel", label=_LABELS["water_demand_rel"][0], median=ratio,
-            unit="relative", band=rel_band, status="estimated" if ratio is not None else "unknown",
-            dataset="NASA POWER + FAO-56", n_windows=item["n_windows"],
-        ))
+        item["indicators"].append(
+            Indicator(
+                id="water_demand_rel",
+                label=_LABELS["water_demand_rel"][0],
+                median=ratio,
+                unit="relative",
+                band=rel_band,
+                status="estimated" if ratio is not None else "unknown",
+                dataset="NASA POWER + FAO-56",
+                n_windows=item["n_windows"],
+            )
+        )
 
     weights = build_weights(priorities, skipped)
     all_priorities = list(PRIORITY_INDICATORS)
@@ -476,7 +562,8 @@ def evaluate_rotation_set(
             score = priority_score(bands_for_priority)
             p_scores[priority] = score
             p_results[priority] = PriorityResult(
-                band=overall_band(score), indicators=[i for i in ids if i in by_id],
+                band=overall_band(score),
+                indicators=[i for i in ids if i in by_id],
             )
             if priority == "budget_market" and priority in (priorities + skipped):
                 item["flags"].add("priority_unscored")
@@ -489,13 +576,27 @@ def evaluate_rotation_set(
 
     order = rank_strategies(prepared)
     eq_order = equal_weights_order(prepared, all_priorities)
+    prio_sens = priority_sensitivity(prepared, weights, seed=42, n_trials=100, perturbation=0.20)
     close_pairs = []
-    ordered_known = [p for p in sorted(prepared, key=lambda x: order.index(x["id"]))
-                     if p["overall_value"] is not None]
+    ordered_known = [
+        p
+        for p in sorted(prepared, key=lambda x: order.index(x["id"]))
+        if p["overall_value"] is not None
+    ]
     for left, right in pairwise(ordered_known):
-        if too_close(left["overall_value"], right["overall_value"],
-                     float(bands.get("overall_too_close", 0.05))):
+        if too_close(
+            left["overall_value"],
+            right["overall_value"],
+            float(bands.get("overall_too_close", 0.05)),
+        ):
             close_pairs.append([left["id"], right["id"]])
+
+    # Cache sowing-date sensitivity for referenced crops
+    crop_sowing_cache = {}
+    for cid, crop_obj in crops.items():
+        crop_sowing_cache[cid] = sowing_date_sensitivity(
+            daily_climate, crop_obj, latitude, thresholds, stage_split_defaults
+        )
 
     strategies = []
     for item in prepared:
@@ -503,24 +604,50 @@ def evaluate_rotation_set(
         has_placeholder = "crop_value_placeholder" in flags_list
         soil_state = soil_status(soil_record)
         conf = confidence_level(flags_list, soil_state, item["confidence_windows"], has_placeholder)
-        sequence_models = [SequenceStep.model_validate({
-            "slot": step.get("slot", "winter"), "year": step.get("year", 1),
-            "crop_id": step.get("crop_id", step.get("crop", "unknown")),
-        }) for step in item["sequence"]]
-        strategies.append(Strategy(
-            id=item["id"], kind=StrategyKind(item["kind"]), name=item["name"],
-            sequence=sequence_models, indicators=item["indicators"],
-            priority_results=item["priority_results"],
-            overall={"band": item["overall_band"], "value": item["overall_value"],
-                     "basis": item["overall_basis"],
-                     "suppressed": item["overall_value"] is None},
-            confidence=conf, flags=flags_list,
-        ))
+        sequence_models = [
+            SequenceStep.model_validate(
+                {
+                    "slot": step.get("slot", "winter"),
+                    "year": step.get("year", 1),
+                    "crop_id": step.get("crop_id", step.get("crop", "unknown")),
+                }
+            )
+            for step in item["sequence"]
+        ]
+        strat_sowing_sens = []
+        seen_crops = set()
+        for step in item["sequence"]:
+            cid = step.get("crop_id", step.get("crop"))
+            if cid in crop_sowing_cache and crop_sowing_cache[cid] and cid not in seen_crops:
+                seen_crops.add(cid)
+                strat_sowing_sens.append(crop_sowing_cache[cid])
+        strategies.append(
+            Strategy(
+                id=item["id"],
+                kind=StrategyKind(item["kind"]),
+                name=item["name"],
+                sequence=sequence_models,
+                indicators=item["indicators"],
+                priority_results=item["priority_results"],
+                overall={
+                    "band": item["overall_band"],
+                    "value": item["overall_value"],
+                    "basis": item["overall_basis"],
+                    "suppressed": item["overall_value"] is None,
+                },
+                confidence=conf,
+                flags=flags_list,
+                sowing_sensitivity=strat_sowing_sens,
+            )
+        )
     return {
         "strategies": strategies,
         "comparison": {
-            "order": order, "too_close": close_pairs, "order_equal_weights": eq_order,
+            "order": order,
+            "too_close": close_pairs,
+            "order_equal_weights": eq_order,
             "ranking_stable": order == eq_order,
+            "priority_sensitivity": prio_sens,
         },
         "weights": weights,
         "priority_indicator_mapping": PRIORITY_INDICATORS,

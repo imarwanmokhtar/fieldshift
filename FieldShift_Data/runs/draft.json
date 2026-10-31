@@ -2,23 +2,23 @@
   "answers": {
     "start": "new",
     "loc_mode": "pilot",
-    "loc_name": "Marwan's Farm",
+    "loc_name": null,
     "coords_real": true,
     "prev_crop": "wheat",
     "prev_season": "winter",
     "has_earlier": true,
-    "prev2_a": "sugar_beet",
+    "prev2_a": "rice",
     "prev2_b": "cotton",
     "irrigation": "canal",
     "water_avail": "high",
     "soil_test": true,
     "soil_texture": "clay",
-    "soil_ph": 7.2,
+    "soil_ph": 7.0,
     "soil_oc": 2.0,
-    "soil_ec": 6.0,
+    "soil_ec": 7.0,
     "soil_depth": 30.0,
-    "soil_date": "2026-10-10",
-    "area": 50.0,
+    "soil_date": "2026-01-01",
+    "area": 10.0,
     "prio_rank": "improve_climate_resilience",
     "prio_rank_list": [
       "maintain_productivity",
@@ -27,12 +27,13 @@
       "improve_climate_resilience"
     ],
     "budget_market": "none",
-    "data_mode": "fetch",
+    "data_mode": "offline",
     "period": "2020-2025",
     "horizon": 3,
-    "strat_source": "templates",
+    "strat_source": "proposed",
     "existing_edit": true,
-    "existing_other_crop": "__other__"
+    "existing_other_crop": "wheat",
+    "review": "run"
   },
   "history": [
     "start",
@@ -61,8 +62,9 @@
     "horizon",
     "strat_source",
     "existing_edit",
-    "existing_other_crop"
+    "existing_other_crop",
+    "review"
   ],
   "flags": [],
-  "saved_at": "2026-10-30T23:18:37"
+  "saved_at": "2026-10-31T22:04:27"
 }

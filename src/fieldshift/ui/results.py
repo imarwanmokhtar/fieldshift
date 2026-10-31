@@ -103,6 +103,50 @@ def show_climate_summary(result, console) -> None:
     )
 
 
+def show_optional_context(result, console) -> None:
+    if not result.optional_context:
+        return
+    console.rule(f"[brand]{text('result.optional_context')}[/brand]", style="brand")
+    for key in ("smap", "modis"):
+        panel = result.optional_context.get(key)
+        if not panel:
+            continue
+        console.print(f"\n[bold]{panel.get('dataset', key.upper())}[/bold]")
+        status = panel.get("status", "not_provided")
+        status_text = text(f"context.status.{status}")
+        console.print(
+            f"{status_text} · {text('result.data_period')}: {panel.get('period') or '—'} · "
+            f"{text('result.context.resolution')}: "
+            f"{panel.get('spatial_resolution_km', panel.get('spatial_resolution_m', '—'))} "
+            f"{'km' if key == 'smap' else 'm'} · "
+            f"{text('result.context.unit')}: {panel.get('unit', '—')} · "
+            f"{text('result.context.observations')}: {panel.get('valid_observations', 0)} "
+            f"{text('result.context.excluded')}: {panel.get('excluded_observations', 0)}"
+        )
+        monthly = panel.get("monthly", [])
+        if key == "smap":
+            table = Table("Month", "Median surface moisture (m³/m³)", "Observations", box=None)
+            for row in monthly:
+                table.add_row(row["month"], str(row["median"]), str(row["n_observations"]))
+        else:
+            table = Table("Month", "Median NDVI", "Median EVI", "Observations", box=None)
+            for row in monthly:
+                table.add_row(
+                    str(row["month"]),
+                    str(row["ndvi_median"]),
+                    str(row["evi_median"]),
+                    str(row["n_observations"]),
+                )
+        if monthly:
+            console.print(table)
+        else:
+            console.print(f"[muted]{text('result.context.no_observations')}[/muted]")
+        if panel.get("quality_flags"):
+            console.print(f"{text('result.context.quality')}: {panel['quality_flags']}")
+        console.print(f"[muted]{panel.get('caveat', '')}[/muted]")
+    console.print(f"[muted]{text('result.context.not_scored')}[/muted]")
+
+
 def _strategy_indicator(strategy, indicator_id: str) -> str:
     indicator = next((item for item in strategy.indicators if item.id == indicator_id), None)
     return indicator.band if indicator else "Unknown"
@@ -144,6 +188,9 @@ def show_comparison(result, console, crop_names: dict[str, str]) -> None:
     )
     for pair in comparison.too_close:
         console.print(f"[warn]{text('result.too_close')}: {' / '.join(pair)}[/warn]")
+    if comparison.priority_sensitivity:
+        summary_text = comparison.priority_sensitivity["summary"]
+        console.print(f"[muted]Priority sensitivity: {summary_text}[/muted]")
     console.print(f"[muted]{text('result.relative_note')}[/muted]")
 
 
@@ -210,6 +257,46 @@ def show_strategy_detail(result, console, strategy, crop_names: dict[str, str]) 
         )
     console.print("\n[bold]Indicators[/bold]")
     console.print(indicators)
+    if strategy.sowing_sensitivity:
+        console.print(
+            f"[muted]{text('result.context.data_period')}: "
+            f"{strategy.sowing_sensitivity[0].get('period') or '—'} · "
+            f"{text('result.context.source')}: "
+            f"{strategy.sowing_sensitivity[0].get('dataset', '—')}[/muted]"
+        )
+        sens_table = Table(
+            "Crop",
+            "Sowing window",
+            "Indicator",
+            "Unit",
+            "Start",
+            "Midpoint",
+            "End",
+            "Spread",
+            "Windows (start/mid/end)",
+            box=None,
+        )
+        for crop_sens in strategy.sowing_sensitivity:
+            cid = crop_sens.get("crop_id", "")
+            cname = crop_names.get(cid, cid.replace("_", " ").title())
+            swin = crop_sens.get("sowing_window", "—")
+            for ind_name, data in crop_sens.get("indicators", {}).items():
+                sens_table.add_row(
+                    cname,
+                    swin,
+                    ind_name.replace("_", " "),
+                    crop_sens.get("units", {}).get(ind_name, "—"),
+                    _value(data.get("start")),
+                    _value(data.get("mid")),
+                    _value(data.get("end")),
+                    _value(data.get("spread")),
+                    "/".join(
+                        str(crop_sens.get("windows", {}).get(anchor, 0))
+                        for anchor in ("start", "mid", "end")
+                    ),
+                )
+        console.print("\n[bold]Sowing-date sensitivity[/bold]")
+        console.print(sens_table)
 
 
 def show_crops_used(result, console, ui) -> None:
@@ -246,6 +333,7 @@ def show_results(result, console, ui) -> None:
     console.print(text("result.disclaimer"))
     show_data_quality(result, console, ui)
     show_climate_summary(result, console)
+    show_optional_context(result, console)
     show_comparison(result, console, crop_names)
     for strategy in result.strategies:
         show_strategy_detail(result, console, strategy, crop_names)

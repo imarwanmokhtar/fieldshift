@@ -64,3 +64,18 @@ Part 11 in order.
 Every remaining `placeholder`/`missing` must be replaced by a cited value (or confirmed
 locally) before any result is presented as a finding. Current leftovers are listed in
 `crop_reference.yaml`'s status counts and in DATA.md §7.5.
+
+## Phase 8–9 decisions (2026-10-31)
+
+16. **Phase 8 proposed candidates** are ranked from available crop-window indicators, then returned
+   as candidates to explore. They never replace the existing rotation baseline or claim a best option.
+17. **Priority sensitivity** uses a fixed seed (42), 100 trials, and ±20% perturbations so repeated
+   runs are reproducible. It is descriptive and does not alter the scored ranking.
+18. **Sowing-date sensitivity** evaluates the first, midpoint, and last day of sourced sowing windows;
+   incomplete climate windows are dropped and their sample counts are displayed.
+19. **Phase 9 SMAP choice** is `SPL3SMP_E` Version 6 (9 km), from the current NSIDC product listing.
+   Earthdata credentials and HDF5 extraction are not available in this workspace, so the app accepts
+   standardized local extracts and labels this as gridded surface-moisture context only.
+20. **Phase 9 MODIS choice** is Terra `MOD13Q1.061` (250 m, 16-day); the NASA product metadata gives
+   the 0.0001 index scale factor and -3000 fill value. Locally supplied raw integer CSV values are
+   scaled by the loader, quality-screened, and kept outside the rotation score.
