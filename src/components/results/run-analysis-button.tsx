@@ -26,8 +26,8 @@ export function RunAnalysisButton({
     try {
       const id = await startAnalysis(locale);
       router.push(`/${locale}/dashboard/results/${id}`);
-    } catch {
-      toast.error(t.startError);
+    } catch (err) {
+      toast.error(`${t.startError} (${err instanceof Error ? err.message : "unknown"})`);
       setBusy(false);
     }
   }

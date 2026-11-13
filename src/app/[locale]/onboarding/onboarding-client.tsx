@@ -25,8 +25,8 @@ export function OnboardingClient({ locale, initialProfile }: OnboardingClientPro
         try {
           const id = await startAnalysis(locale);
           router.push(`/${locale}/dashboard/results/${id}`);
-        } catch {
-          toast.error(getResultsStrings(locale).startError);
+        } catch (err) {
+          toast.error(`${getResultsStrings(locale).startError} (${err instanceof Error ? err.message : "unknown"})`);
           router.push(`/${locale}/dashboard`);
         }
         router.refresh();

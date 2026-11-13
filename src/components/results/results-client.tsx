@@ -55,8 +55,8 @@ export function ResultsClient({ locale, initial }: { locale: Locale; initial: An
     try {
       const id = await startAnalysis(lang);
       router.push(`/${lang}/dashboard/results/${id}`);
-    } catch {
-      toast.error(t.startError);
+    } catch (err) {
+      toast.error(`${t.startError} (${err instanceof Error ? err.message : "unknown"})`);
       setBusy(false);
     }
   }
