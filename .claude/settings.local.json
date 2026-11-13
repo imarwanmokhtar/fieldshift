@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:context7.com)",
+      "Bash(rtk npx *)",
+      "Bash(npm init *)",
+      "Bash(rtk playwright *)",
+      "Bash(rtk proxy *)",
+      "Bash(rtk ls *)",
+      "Bash(sudo rtk playwright install-deps webkit)",
+      "Bash(/mcp reconnect *)",
+      "Bash(find /home/marwan/Downloads/Portfolio_Projects/fieldshift/engine -type f -name \"*.py\" | head -50)"
+    ]
+  }
+}
