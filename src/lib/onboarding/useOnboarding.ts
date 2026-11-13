@@ -15,8 +15,6 @@ import {
     getQuestionById,
 } from "./questions";
 
-const DEBOUNCE_MS = 1000;
-
 export function useOnboarding(
     locale: "ar" | "en",
     initialProfile?: FieldProfile | null
@@ -32,65 +30,10 @@ export function useOnboarding(
         error: null,
     });
 
-    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const isMountedRef = useRef(true);
-
-    // Debounced save to Supabase
-    const debouncedSave = useCallback(
-        async (answers: OnboardingAnswers, currentStep: number) => {
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
-
-            saveTimeoutRef.current = setTimeout(async () => {
-                if (!isMountedRef.current) return;
-
-                setState((prev) => ({ ...prev, isSaving: true }));
-
-                try {
-                    const {
-                        data: { user },
-                    } = await supabase.auth.getUser();
-                    if (!user) throw new Error("Not authenticated");
-
-                    const { error } = await supabase.from("field_profiles").upsert(
-                        {
-                            user_id: user.id,
-                            answers,
-                            current_step: currentStep,
-                            status: currentStep >= TOTAL_QUESTIONS ? "completed" : "in_progress",
-                            updated_at: new Date().toISOString(),
-                        },
-                        { onConflict: "user_id" }
-                    );
-
-                    if (error) throw error;
-
-                    setState((prev) => ({
-                        ...prev,
-                        isSaving: false,
-                        lastSaved: Date.now(),
-                        error: null,
-                    }));
-                } catch (err) {
-                    setState((prev) => ({
-                        ...prev,
-                        isSaving: false,
-                        error: err instanceof Error ? err.message : "Failed to save",
-                    }));
-                }
-            }, DEBOUNCE_MS);
-        },
-        [supabase]
-    );
 
     // Save immediately (used for Finish button)
     const saveNow = useCallback(async () => {
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-            saveTimeoutRef.current = null;
-        }
-
         setState((prev) => ({ ...prev, isSaving: true }));
 
         try {
@@ -132,11 +75,9 @@ export function useOnboarding(
     const updateAnswer = useCallback((id: string, value: AnswerValue) => {
         setState((prev) => {
             const newAnswers = { ...prev.answers, [id]: value };
-            // Trigger debounced save
-            debouncedSave(newAnswers, prev.currentStep);
-            return { ...prev, answers: newAnswers };
+            return { ...prev, answers: newAnswers, error: null };
         });
-    }, [debouncedSave]);
+    }, []);
 
     // Navigation
     const goNext = useCallback(() => {
@@ -146,26 +87,23 @@ export function useOnboarding(
                 return prev; // Can't advance
             }
             const nextStep = Math.min(prev.currentStep + 1, TOTAL_QUESTIONS);
-            debouncedSave(prev.answers, nextStep);
             return { ...prev, currentStep: nextStep };
         });
-    }, [debouncedSave]);
+    }, []);
 
     const goBack = useCallback(() => {
         setState((prev) => {
             const nextStep = Math.max(prev.currentStep - 1, 0);
-            debouncedSave(prev.answers, nextStep);
             return { ...prev, currentStep: nextStep };
         });
-    }, [debouncedSave]);
+    }, []);
 
     const goToStep = useCallback((step: number) => {
         const clamped = Math.max(0, Math.min(step, TOTAL_QUESTIONS));
         setState((prev) => {
-            debouncedSave(prev.answers, clamped);
             return { ...prev, currentStep: clamped };
         });
-    }, [debouncedSave]);
+    }, []);
 
     const finish = useCallback(async () => {
         await saveNow();
@@ -176,9 +114,6 @@ export function useOnboarding(
         isMountedRef.current = true;
         return () => {
             isMountedRef.current = false;
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
         };
     }, []);
 
