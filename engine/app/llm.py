@@ -5,6 +5,7 @@ Guardrails:
 - Number check: every number in the generated text must already appear in the pack.
   On failure we retry once, then fall back to template text built from the same pack.
 - Only the evidence pack is sent (no email, no user id). Results are cached by pack hash.
+- Provider: Gemini (GEMINI_API_KEY) or Claude (ANTHROPIC_API_KEY); see settings.LLM_PROVIDER.
 """
 
 from __future__ import annotations
@@ -136,29 +137,94 @@ def _strip_fences(raw: str) -> str:
     return raw[start:end + 1] if start != -1 and end != -1 else raw
 
 
-def _call(view: dict[str, Any], lang: str, feedback: str | None = None) -> str:
-    import anthropic
+DEFAULT_MODELS = {"gemini": "gemini-2.5-flash", "anthropic": "claude-sonnet-5-5"}
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+def provider() -> str | None:
+    """Which LLM to use: LLM_PROVIDER if set, otherwise whichever API key is present."""
+    p = getattr(settings, "LLM_PROVIDER", "") or ""
+    gem = getattr(settings, "GEMINI_API_KEY", "") or ""
+    ant = getattr(settings, "ANTHROPIC_API_KEY", "") or ""
+    if p == "gemini":
+        return "gemini" if gem else None
+    if p == "anthropic":
+        return "anthropic" if ant else None
+    if gem:
+        return "gemini"
+    if ant:
+        return "anthropic"
+    return None
+
+
+def model_name(prov: str) -> str:
+    return (getattr(settings, "LLM_MODEL", "") or "") or DEFAULT_MODELS[prov]
+
+
+def _prompt(view: dict[str, Any], lang: str, feedback: str | None) -> str:
     content = (f"Language: {lang}\nSCHEMA: {json.dumps(Narrative.model_json_schema())}\n"
                f"DATA: {json.dumps(view, ensure_ascii=False)}")
     if feedback:
         content += f"\n\nYour previous answer was rejected: {feedback} Fix it and return the full JSON again."
+    return content
+
+
+def _call_gemini(content: str, model: str) -> str:
+    import httpx
+
+    r = httpx.post(
+        GEMINI_URL.format(model=model),
+        headers={"x-goog-api-key": settings.GEMINI_API_KEY, "Content-Type": "application/json"},
+        json={
+            "systemInstruction": {"parts": [{"text": SYSTEM}]},
+            "contents": [{"role": "user", "parts": [{"text": content}]}],
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": 8192,
+                "responseMimeType": "application/json",
+                # 2.5 Flash: 0 turns "thinking" off -> faster and cheaper; we only need rephrasing.
+                "thinkingConfig": {"thinkingBudget": 0},
+            },
+        },
+        timeout=120,
+    )
+    r.raise_for_status()
+    data = r.json()
+    cands = data.get("candidates") or []
+    if not cands:
+        raise RuntimeError(f"Gemini returned no candidates: {str(data.get('promptFeedback'))[:200]}")
+    parts = (cands[0].get("content") or {}).get("parts") or []
+    return "".join(p.get("text", "") for p in parts if not p.get("thought"))
+
+
+def _call_anthropic(content: str, model: str) -> str:
+    import anthropic
+
+    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
     msg = client.messages.create(
-        model=settings.LLM_MODEL, max_tokens=6000, temperature=0.2, system=SYSTEM,
+        model=model, max_tokens=6000, temperature=0.2, system=SYSTEM,
         messages=[{"role": "user", "content": content}],
     )
     return "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
 
 
+def _call(view: dict[str, Any], lang: str, feedback: str | None = None) -> str:
+    prov = provider()
+    content = _prompt(view, lang, feedback)
+    if prov == "gemini":
+        return _call_gemini(content, model_name(prov))
+    return _call_anthropic(content, model_name("anthropic"))
+
+
 def narrate(pack: EvidencePack, lang: str = "en") -> NarrativeOut:
     if lang not in ("en", "ar"):
         lang = "en"
-    if not settings.ANTHROPIC_API_KEY:
+    prov = provider()
+    if prov is None:
         return fallback_text(pack, lang)
 
     view = llm_view(pack)
-    key = hashlib.sha256((settings.LLM_MODEL + lang + json.dumps(view, sort_keys=True, ensure_ascii=False)).encode()).hexdigest()
+    key = hashlib.sha256((prov + model_name(prov) + lang + json.dumps(view, sort_keys=True, ensure_ascii=False)).encode()).hexdigest()
     hit = cache.get("llm", key)
     if hit:
         return NarrativeOut(**hit)

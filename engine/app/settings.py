@@ -21,8 +21,12 @@ class Settings:
     ENGINE_API_KEY: str = field(default_factory=lambda: _env("ENGINE_API_KEY"))
     SUPABASE_URL: str = field(default_factory=lambda: _env("SUPABASE_URL").rstrip("/"))
     SUPABASE_SERVICE_ROLE_KEY: str = field(default_factory=lambda: _env("SUPABASE_SERVICE_ROLE_KEY"))
+    # LLM provider: "gemini" or "anthropic". Empty = picked automatically from whichever key is set.
+    LLM_PROVIDER: str = field(default_factory=lambda: _env("LLM_PROVIDER").lower())
+    GEMINI_API_KEY: str = field(default_factory=lambda: _env("GEMINI_API_KEY"))
     ANTHROPIC_API_KEY: str = field(default_factory=lambda: _env("ANTHROPIC_API_KEY"))
-    LLM_MODEL: str = field(default_factory=lambda: _env("LLM_MODEL", "claude-sonnet-5-5"))
+    # Empty = default for the provider (gemini-2.5-flash / claude-sonnet-5-5).
+    LLM_MODEL: str = field(default_factory=lambda: _env("LLM_MODEL"))
     COPERNICUS_CLIENT_ID: str = field(default_factory=lambda: _env("COPERNICUS_CLIENT_ID"))
     COPERNICUS_CLIENT_SECRET: str = field(default_factory=lambda: _env("COPERNICUS_CLIENT_SECRET"))
     # Return realistic mock values for the stubbed layers (NDVI, SMAP, IMERG).

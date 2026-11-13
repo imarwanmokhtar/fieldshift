@@ -10,6 +10,7 @@ from fastapi import BackgroundTasks, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 from . import db
+from .llm import model_name, provider
 from .pipeline import compare_choice, run_analysis
 from .profile import ProfileError
 from .settings import settings
@@ -58,6 +59,7 @@ def compare(req: CompareRequest, x_api_key: str = Header(...)):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "llm": bool(settings.ANTHROPIC_API_KEY),
+    prov = provider()
+    return {"ok": True, "llm": f"{prov}:{model_name(prov)}" if prov else "templates (no LLM key)",
             "supabase": bool(settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY),
             "copernicus": bool(settings.COPERNICUS_CLIENT_ID), "mock_layers": settings.USE_MOCK_LAYERS}

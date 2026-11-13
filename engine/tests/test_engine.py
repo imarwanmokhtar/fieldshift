@@ -200,3 +200,31 @@ def test_api_key_and_health(monkeypatch):
     assert c.post("/analyze", json=body, headers={"X-API-Key": "wrong"}).status_code == 401
     r = c.post("/analyze", json=body, headers={"X-API-Key": "secret"})
     assert r.status_code == 202 and ran == [("a1", "u1", "ar")]
+
+
+def test_gemini_request_and_parse(monkeypatch):
+    import json
+    import httpx
+    import app.llm as llm
+    monkeypatch.setattr(llm, "settings", type("S", (), {
+        "LLM_PROVIDER": "", "GEMINI_API_KEY": "g-key", "ANTHROPIC_API_KEY": "", "LLM_MODEL": ""})())
+    monkeypatch.setattr(llm.cache, "get", lambda *a, **k: None)
+    monkeypatch.setattr(llm.cache, "put", lambda *a, **k: None)
+    assert llm.provider() == "gemini" and llm.model_name("gemini") == "gemini-2.5-flash"
+    pack, _ = analyze_answers(ANSWERS, "ar")
+    seen = {}
+
+    def fake_post(url, headers, json, timeout):
+        seen.update(url=url, headers=headers, body=json)
+        reply = {"overview": "قارنّا الخيارات.", "reminder": "راجع مهندساً زراعياً.", "strategies": [
+            {"id": s.id, "summary": f"الدرجة {s.scores['overall']} من 100.", "why": "w", "evidence": [],
+             "benefits": [], "gaps": [], "risks": []} for s in pack.strategies]}
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": __import__("json").dumps(reply, ensure_ascii=False)}]}}]},
+                              request=httpx.Request("POST", url))
+    monkeypatch.setattr(httpx, "post", fake_post)
+    out = llm.narrate(pack, "ar")
+    assert out.source == "llm" and out.lang == "ar"
+    assert seen["url"].endswith("/models/gemini-2.5-flash:generateContent")
+    assert seen["headers"]["x-goog-api-key"] == "g-key"
+    assert seen["body"]["generationConfig"]["responseMimeType"] == "application/json"
+    assert "DATA:" in seen["body"]["contents"][0]["parts"][0]["text"]

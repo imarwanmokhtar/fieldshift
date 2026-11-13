@@ -34,7 +34,7 @@ macOS / Linux: same steps with `python3 -m venv .venv` and `source .venv/bin/act
 
 1. **Supabase:** run `supabase/migrations/002_analyses.sql` in the Supabase SQL editor.
 2. **Secrets:** `engine/.env` (never commit it; copy `.env.example` for a new machine).
-   - `ANTHROPIC_API_KEY` empty: explanations use built-in templates (English and Arabic). Add a key to get LLM-written text.
+   - LLM: set `GEMINI_API_KEY` (Gemini 2.5 Flash, `LLM_PROVIDER=gemini`) or `ANTHROPIC_API_KEY` (Claude). With no key, explanations use built-in templates (English and Arabic).
    - `COPERNICUS_CLIENT_ID` / `SECRET` empty: the Sentinel-2 NDVI layer is skipped.
    - `USE_MOCK_LAYERS=true`: NDVI, SMAP and IMERG return demo values, clearly labelled "mock" in the results.
 
@@ -65,7 +65,7 @@ python -c "from tests.test_engine import ANSWERS; from app.pipeline import analy
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/health` | none | status, which keys are set |
+| GET | `/health` | none | status, which LLM is active, which keys are set |
 | POST | `/analyze` | `X-API-Key` | `{analysis_id, user_id, lang?}` → 202, runs in the background |
 | POST | `/compare` | `X-API-Key` | `{user_id, crop, season?}` → the farmer's own crop scored next to their current rotation and the best option |
 
