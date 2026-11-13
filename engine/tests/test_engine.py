@@ -175,6 +175,7 @@ def test_llm_bad_numbers_fall_back_after_retry(monkeypatch, tmp_path):
     monkeypatch.setattr(llm, "_call", fake_call)
     out = llm.narrate(pack, "en")
     assert out.source == "template" and len(calls) == 2 and "424242" in calls[1]
+    assert "424242" in (out.fallback_reason or "")
 
     def good_call(view, lang, feedback=None):
         return "```json\n" + json.dumps({"overview": "We compared options.", "reminder": "Ask an expert.", "strategies": [
@@ -202,6 +203,19 @@ def test_api_key_and_health(monkeypatch):
     assert r.status_code == 202 and ran == [("a1", "u1", "ar")]
 
 
+def test_gemini_http_error_is_recorded(monkeypatch):
+    import httpx
+    import app.llm as llm
+    monkeypatch.setattr(llm, "settings", type("S", (), {
+        "LLM_PROVIDER": "gemini", "GEMINI_API_KEY": "bad", "ANTHROPIC_API_KEY": "", "LLM_MODEL": ""})())
+    monkeypatch.setattr(llm.cache, "get", lambda *a, **k: None)
+    pack, _ = analyze_answers(ANSWERS, "en")
+    monkeypatch.setattr(httpx, "post", lambda url, headers, json, timeout: httpx.Response(
+        403, text='{"error":{"status":"PERMISSION_DENIED"}}', request=httpx.Request("POST", url)))
+    out = llm.narrate(pack, "en")
+    assert out.source == "template" and "403" in out.fallback_reason and "PERMISSION_DENIED" in out.fallback_reason
+
+
 def test_gemini_request_and_parse(monkeypatch):
     import json
     import httpx
@@ -227,6 +241,7 @@ def test_gemini_request_and_parse(monkeypatch):
     assert seen["url"].endswith("/models/gemini-2.5-flash:generateContent")
     assert seen["headers"]["x-goog-api-key"] == "g-key"
     assert seen["body"]["generationConfig"]["responseMimeType"] == "application/json"
+    assert seen["body"]["generationConfig"]["responseSchema"]["required"] == ["overview", "strategies", "reminder"]
     assert "DATA:" in seen["body"]["contents"][0]["parts"][0]["text"]
 
 

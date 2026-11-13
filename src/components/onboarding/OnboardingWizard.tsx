@@ -132,7 +132,7 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                                                         locale={locale}
                                                         value={answers[currentQuestion.id] as string | undefined}
                                                         onChange={(val) => updateAnswer(currentQuestion.id, val as AnswerValue)}
-                                                        allowUnknown={currentQuestion.allowUnknown ?? true}
+                                                        allowUnknown={false /* the small "Don't know / Skip" link below handles skipping */}
                                                     />
                                                 );
                                             case "multi":
@@ -142,7 +142,7 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                                                         locale={locale}
                                                         value={answers[currentQuestion.id] as string[] | undefined}
                                                         onChange={(val) => updateAnswer(currentQuestion.id, val as AnswerValue)}
-                                                        allowUnknown={currentQuestion.allowUnknown ?? true}
+                                                        allowUnknown={false /* the small "Don't know / Skip" link below handles skipping */}
                                                     />
                                                 );
                                             case "number":
@@ -152,7 +152,7 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                                                         locale={locale}
                                                         value={answers[currentQuestion.id] as number | string | undefined}
                                                         onChange={(val) => updateAnswer(currentQuestion.id, val as AnswerValue)}
-                                                        allowUnknown={currentQuestion.allowUnknown ?? true}
+                                                        allowUnknown={false /* the small "Don't know / Skip" link below handles skipping */}
                                                     />
                                                 );
                                             case "numberWithUnit":
@@ -162,7 +162,7 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                                                         locale={locale}
                                                         value={answers[currentQuestion.id] as any}
                                                         onChange={(val) => updateAnswer(currentQuestion.id, val as AnswerValue)}
-                                                        allowUnknown={currentQuestion.allowUnknown ?? true}
+                                                        allowUnknown={false /* the small "Don't know / Skip" link below handles skipping */}
                                                     />
                                                 );
                                             case "text":
@@ -172,7 +172,7 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                                                         locale={locale}
                                                         value={answers[currentQuestion.id] as string | undefined}
                                                         onChange={(val) => updateAnswer(currentQuestion.id, val as AnswerValue)}
-                                                        allowUnknown={currentQuestion.allowUnknown ?? true}
+                                                        allowUnknown={false /* the small "Don't know / Skip" link below handles skipping */}
                                                     />
                                                 );
                                             case "twoNumbers":
@@ -182,7 +182,7 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                                                         locale={locale}
                                                         value={answers[currentQuestion.id] as any}
                                                         onChange={(val) => updateAnswer(currentQuestion.id, val as AnswerValue)}
-                                                        allowUnknown={currentQuestion.allowUnknown ?? true}
+                                                        allowUnknown={false /* the small "Don't know / Skip" link below handles skipping */}
                                                     />
                                                 );
                                             case "cropAndSeason":
@@ -192,7 +192,7 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                                                         locale={locale}
                                                         value={answers[currentQuestion.id] as any}
                                                         onChange={(val) => updateAnswer(currentQuestion.id, val as AnswerValue)}
-                                                        allowUnknown={currentQuestion.allowUnknown ?? true}
+                                                        allowUnknown={false /* the small "Don't know / Skip" link below handles skipping */}
                                                     />
                                                 );
                                             case "rank":
@@ -202,7 +202,7 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                                                         locale={locale}
                                                         value={answers[currentQuestion.id] as string[] | undefined}
                                                         onChange={(val) => updateAnswer(currentQuestion.id, val as AnswerValue)}
-                                                        allowUnknown={currentQuestion.allowUnknown ?? true}
+                                                        allowUnknown={false /* the small "Don't know / Skip" link below handles skipping */}
                                                     />
                                                 );
                                             case "soilTest":
@@ -212,7 +212,7 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                                                         locale={locale}
                                                         value={answers[currentQuestion.id] as any}
                                                         onChange={(val) => updateAnswer(currentQuestion.id, val as AnswerValue)}
-                                                        allowUnknown={currentQuestion.allowUnknown ?? true}
+                                                        allowUnknown={false /* the small "Don't know / Skip" link below handles skipping */}
                                                     />
                                                 );
                                             case "mapPin":
@@ -222,7 +222,7 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                                                         locale={locale}
                                                         value={answers[currentQuestion.id] as any}
                                                         onChange={(val) => updateAnswer(currentQuestion.id, val as AnswerValue)}
-                                                        allowUnknown={currentQuestion.allowUnknown ?? true}
+                                                        allowUnknown={false /* the small "Don't know / Skip" link below handles skipping */}
                                                     />
                                                 );
                                             default:

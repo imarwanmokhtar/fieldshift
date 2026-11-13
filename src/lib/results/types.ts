@@ -71,6 +71,7 @@ export interface Narrative {
   reminder: string;
   lang: "ar" | "en";
   source: "llm" | "template";
+  fallback_reason?: string | null;
 }
 
 export type AnalysisStatus = "pending" | "running" | "done" | "failed";

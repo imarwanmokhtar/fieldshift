@@ -148,7 +148,16 @@ function Results({
           {pack.observations.climate_source !== "nasa_power" && (
             <span className="border-2 border-ink bg-paper px-2 py-1 font-bold">{t.climateFallback}</span>
           )}
-          {narrative.source === "template" && <span className="opacity-80">{t.templateNote}</span>}
+          {narrative.source === "template" && (
+            <span className="opacity-80">
+              {t.templateNote}
+              {narrative.fallback_reason && (
+                <span className="block text-xs" dir="ltr">
+                  {narrative.fallback_reason}
+                </span>
+              )}
+            </span>
+          )}
           <button
             type="button"
             onClick={onOtherLanguage}

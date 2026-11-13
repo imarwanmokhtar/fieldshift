@@ -14,6 +14,7 @@ import hashlib
 import json
 import logging
 import re
+import time
 from typing import Any
 
 from pydantic import ValidationError
@@ -34,6 +35,7 @@ Mention uncertainty and the confidence level honestly. Do not oversell any optio
 The "reminder" is one sentence telling the farmer to review the options with a local agricultural expert.
 Reply in the requested language (en = English, ar = simple Modern Standard Arabic that Egyptian farmers understand).
 Write numbers with Western digits (0-9), exactly as they appear in the DATA.
+Keep it short: at most 4 short items in each list, and one sentence per item.
 Return only valid JSON matching the schema, with no extra text."""
 
 _ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩٫٬", "0123456789.,")
@@ -95,7 +97,7 @@ def unsupported_numbers(narr: Narrative, allowed: set[float]) -> list[float]:
     for n in _numbers(text):
         if n in allowed or round(n) in allowed:
             continue
-        if any(a and abs(n - a) / abs(a) <= 0.01 for a in allowed):
+        if any(a and abs(n - a) / abs(a) <= 0.02 for a in allowed):
             continue
         bad.append(n)
     return bad
@@ -103,7 +105,7 @@ def unsupported_numbers(narr: Narrative, allowed: set[float]) -> list[float]:
 
 # ---------------------------------------------------------------- template fallback
 
-def fallback_text(pack: EvidencePack, lang: str) -> NarrativeOut:
+def fallback_text(pack: EvidencePack, lang: str, reason: str | None = None) -> NarrativeOut:
     by_id = {s.id: s for s in pack.strategies}
     best = by_id[pack.recommended_id]
     best_name = best.name_ar if lang == "ar" else best.name
@@ -125,7 +127,7 @@ def fallback_text(pack: EvidencePack, lang: str) -> NarrativeOut:
             risks=[render(f.code, f.params, lang) for f in s.risks[:6]],
         ))
     return NarrativeOut(overview=overview, strategies=texts, reminder=render("reminder", {}, lang),
-                        lang=lang, source="template")  # type: ignore[arg-type]
+                        lang=lang, source="template", fallback_reason=reason)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------- LLM call
@@ -169,6 +171,30 @@ def _prompt(view: dict[str, Any], lang: str, feedback: str | None) -> str:
     return content
 
 
+_STR = {"type": "STRING"}
+_STR_LIST = {"type": "ARRAY", "items": _STR}
+GEMINI_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "overview": _STR,
+        "strategies": {"type": "ARRAY", "items": {
+            "type": "OBJECT",
+            "properties": {"id": _STR, "summary": _STR, "why": _STR, "evidence": _STR_LIST,
+                           "benefits": _STR_LIST, "gaps": _STR_LIST, "risks": _STR_LIST},
+            "required": ["id", "summary", "why", "evidence", "benefits", "gaps", "risks"],
+            "propertyOrdering": ["id", "summary", "why", "evidence", "benefits", "gaps", "risks"],
+        }},
+        "reminder": _STR,
+    },
+    "required": ["overview", "strategies", "reminder"],
+    "propertyOrdering": ["overview", "strategies", "reminder"],
+}
+
+
+class LlmError(RuntimeError):
+    pass
+
+
 def _call_gemini(content: str, model: str) -> str:
     import httpx
 
@@ -180,19 +206,24 @@ def _call_gemini(content: str, model: str) -> str:
             "contents": [{"role": "user", "parts": [{"text": content}]}],
             "generationConfig": {
                 "temperature": 0.2,
-                "maxOutputTokens": 8192,
+                "maxOutputTokens": 16384,
                 "responseMimeType": "application/json",
+                "responseSchema": GEMINI_SCHEMA,
                 # 2.5 Flash: 0 turns "thinking" off -> faster and cheaper; we only need rephrasing.
                 "thinkingConfig": {"thinkingBudget": 0},
             },
         },
-        timeout=120,
+        timeout=45,
     )
-    r.raise_for_status()
+    if r.status_code >= 400:
+        raise LlmError(f"gemini HTTP {r.status_code}: {r.text[:300]}")
     data = r.json()
     cands = data.get("candidates") or []
     if not cands:
-        raise RuntimeError(f"Gemini returned no candidates: {str(data.get('promptFeedback'))[:200]}")
+        raise LlmError(f"gemini returned no answer: {str(data.get('promptFeedback'))[:200]}")
+    finish = cands[0].get("finishReason")
+    if finish and finish not in ("STOP", "FINISH_REASON_UNSPECIFIED"):
+        raise LlmError(f"gemini stopped early: {finish}")
     parts = (cands[0].get("content") or {}).get("parts") or []
     return "".join(p.get("text", "") for p in parts if not p.get("thought"))
 
@@ -221,7 +252,7 @@ def narrate(pack: EvidencePack, lang: str = "en") -> NarrativeOut:
         lang = "en"
     prov = provider()
     if prov is None:
-        return fallback_text(pack, lang)
+        return fallback_text(pack, lang, reason="no LLM API key set")
 
     view = llm_view(pack)
     key = hashlib.sha256((prov + model_name(prov) + lang + json.dumps(view, sort_keys=True, ensure_ascii=False)).encode()).hexdigest()
@@ -229,27 +260,40 @@ def narrate(pack: EvidencePack, lang: str = "en") -> NarrativeOut:
     if hit:
         return NarrativeOut(**hit)
 
-    allowed = allowed_numbers(view)
+    allowed = allowed_numbers(view) | set(_numbers(pack.model_dump_json()))
     ids = [s.id for s in pack.strategies]
     feedback = None
+    reason = "unknown"
+    started = time.monotonic()
     for attempt in range(2):          # first try + one retry
-        try:
-            narr = Narrative.model_validate_json(_strip_fences(_call(view, lang, feedback)))
-        except ValidationError as exc:
-            feedback = f"invalid JSON for the schema ({exc.error_count()} errors)."
-            continue
-        except Exception as exc:      # network / auth / rate limit: no point retrying the same way
-            log.warning("LLM call failed: %s", exc)
+        if attempt and time.monotonic() - started > 35:
+            reason += " (no time left to retry)"
             break
+        try:
+            raw = _call(view, lang, feedback)
+        except Exception as exc:      # network / auth / quota / truncated: retrying the same way rarely helps
+            reason = f"{type(exc).__name__}: {str(exc)[:300]}"
+            log.warning("LLM call failed: %s", reason)
+            break
+        try:
+            narr = Narrative.model_validate_json(_strip_fences(raw))
+        except ValidationError as exc:
+            reason = f"invalid JSON from model ({exc.error_count()} errors): {str(exc)[:200]}"
+            feedback = f"invalid JSON for the schema ({exc.error_count()} errors)."
+            log.warning("LLM attempt %d: %s", attempt + 1, reason)
+            continue
         if [s.id for s in narr.strategies] != ids:
+            reason = f"wrong strategy ids {[s.id for s in narr.strategies]} (expected {ids})"
             feedback = f"the strategy ids must be exactly {ids} in this order."
+            log.warning("LLM attempt %d: %s", attempt + 1, reason)
             continue
         bad = unsupported_numbers(narr, allowed)
         if bad:
+            reason = f"numbers not in the data: {bad[:8]}"
             feedback = f"these numbers are not in the DATA: {bad[:8]}. Only use numbers from the DATA."
-            log.info("LLM attempt %d used unsupported numbers %s", attempt + 1, bad[:8])
+            log.warning("LLM attempt %d: %s", attempt + 1, reason)
             continue
         out = NarrativeOut(**narr.model_dump(), lang=lang, source="llm")  # type: ignore[arg-type]
         cache.put("llm", key, out.model_dump())
         return out
-    return fallback_text(pack, lang)
+    return fallback_text(pack, lang, reason=reason)

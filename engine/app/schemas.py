@@ -160,3 +160,4 @@ class Narrative(BaseModel):
 class NarrativeOut(Narrative):
     lang: Lang
     source: Literal["llm", "template"]
+    fallback_reason: str | None = None   # why the LLM text was not used (for debugging)
