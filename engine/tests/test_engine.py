@@ -228,3 +228,14 @@ def test_gemini_request_and_parse(monkeypatch):
     assert seen["headers"]["x-goog-api-key"] == "g-key"
     assert seen["body"]["generationConfig"]["responseMimeType"] == "application/json"
     assert "DATA:" in seen["body"]["contents"][0]["parts"][0]["text"]
+
+
+def test_sync_mode_runs_inline(monkeypatch):
+    from fastapi.testclient import TestClient
+    import app.main as main
+    monkeypatch.setattr(main, "settings", type("S", (), {"ENGINE_API_KEY": "secret", "ENGINE_SYNC": True})())
+    ran = []
+    monkeypatch.setattr(main, "run_analysis", lambda *a: ran.append(a))
+    r = TestClient(main.app).post("/analyze", json={"analysis_id": "a1", "user_id": "u1"},
+                                  headers={"X-API-Key": "secret"})
+    assert r.status_code == 200 and r.json()["status"] == "finished" and ran == [("a1", "u1", None)]

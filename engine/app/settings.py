@@ -32,7 +32,11 @@ class Settings:
     # Return realistic mock values for the stubbed layers (NDVI, SMAP, IMERG).
     # Mocked layers are always labelled "mock" in the evidence pack.
     USE_MOCK_LAYERS: bool = field(default_factory=lambda: _env("USE_MOCK_LAYERS", "false").lower() in ("1", "true", "yes"))
-    CACHE_DIR: Path = field(default_factory=lambda: Path(_env("CACHE_DIR", str(ENGINE_DIR / ".cache"))))
+    # On Vercel only /tmp is writable.
+    CACHE_DIR: Path = field(default_factory=lambda: Path(_env("CACHE_DIR", "/tmp/fieldshift-cache" if os.getenv("VERCEL") else str(ENGINE_DIR / ".cache"))))
+    # Sync mode: /analyze finishes the whole analysis before replying (needed on serverless hosts
+    # like Vercel, where work after the reply may be stopped). On by default when running on Vercel.
+    ENGINE_SYNC: bool = field(default_factory=lambda: _env("ENGINE_SYNC", "true" if os.getenv("VERCEL") else "false").lower() in ("1", "true", "yes"))
     DATA_DIR: Path = ENGINE_DIR / "data"
     # Years of NASA POWER history to analyse.
     POWER_START: str = field(default_factory=lambda: _env("POWER_START", "20150101"))

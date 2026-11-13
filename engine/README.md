@@ -17,7 +17,7 @@ Next.js POST /api/analyze ─▶ engine POST /analyze (202) ─▶ background ru
 cd engine
 py -m venv .venv
 .venv\Scripts\Activate.ps1          # if blocked: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 python -m pytest                    # 15 tests, all offline
 uvicorn app.main:app --reload --port 8000
 ```
@@ -90,7 +90,16 @@ app/texts.py        English + Arabic text for every fact
 app/llm.py          prompt, call, validation, number check, fallback
 ```
 
-## Deploy
+## Deploy on Vercel (free, no card)
+
+Create a second Vercel project from the same GitHub repo with **Root Directory = `engine`**.
+Vercel loads `index.py` (which imports `app.main:app`), reads `requirements.txt`, and
+`vercel.json` gives the function up to 90 s. On Vercel the engine runs in sync mode
+(`ENGINE_SYNC`, automatic): `/analyze` finishes the analysis before replying. Add the same
+environment variables as in `.env`, then set `ENGINE_URL` in the website project to this
+project's URL.
+
+## Deploy with Docker (Render / Railway / Fly.io)
 
 `Dockerfile` is ready for Render / Railway / Fly.io. Set the same variables as in
 `.env`, then set `ENGINE_URL` in Vercel to the public engine URL. Free tiers sleep:

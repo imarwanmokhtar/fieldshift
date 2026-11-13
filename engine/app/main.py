@@ -6,7 +6,7 @@ import hmac
 import logging
 from typing import Literal
 
-from fastapi import BackgroundTasks, FastAPI, Header, HTTPException
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Response
 from pydantic import BaseModel
 
 from . import db
@@ -38,8 +38,13 @@ class CompareRequest(BaseModel):
 
 
 @app.post("/analyze", status_code=202)
-def analyze(req: AnalyzeRequest, bg: BackgroundTasks, x_api_key: str = Header(...)):
+def analyze(req: AnalyzeRequest, bg: BackgroundTasks, response: Response, x_api_key: str = Header(...)):
     _check_key(x_api_key)
+    if getattr(settings, "ENGINE_SYNC", False):
+        # Serverless: do the work now; the result is written to Supabase before we reply.
+        run_analysis(req.analysis_id, req.user_id, req.lang)
+        response.status_code = 200
+        return {"status": "finished"}
     bg.add_task(run_analysis, req.analysis_id, req.user_id, req.lang)
     return {"status": "accepted"}
 
