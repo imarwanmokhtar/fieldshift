@@ -34,7 +34,7 @@ macOS / Linux: same steps with `python3 -m venv .venv` and `source .venv/bin/act
 
 1. **Supabase:** run `supabase/migrations/002_analyses.sql` in the Supabase SQL editor.
 2. **Secrets:** `engine/.env` (never commit it; copy `.env.example` for a new machine).
-   - LLM: set `GEMINI_API_KEY` (Gemini 3.8 Flash, `LLM_PROVIDER=gemini`) or `ANTHROPIC_API_KEY` (Claude). With no key, explanations use built-in templates (English and Arabic).
+   - LLM: set `OPENROUTER_API_KEY` (`LLM_PROVIDER=openrouter`, default model `google/gemma-4-31b-it:free`), or `GEMINI_API_KEY` (Gemini 3.8 Flash, `LLM_PROVIDER=gemini`) or `ANTHROPIC_API_KEY` (Claude). With no key, explanations use built-in templates (English and Arabic).
    - `COPERNICUS_CLIENT_ID` / `SECRET` empty: the Sentinel-2 NDVI layer is skipped.
    - `USE_MOCK_LAYERS=true`: NDVI, SMAP and IMERG return demo values, clearly labelled "mock" in the results.
 

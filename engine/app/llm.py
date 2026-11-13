@@ -5,7 +5,7 @@ Guardrails:
 - Number check: every number in the generated text must already appear in the pack.
   On failure we retry once, then fall back to template text built from the same pack.
 - Only the evidence pack is sent (no email, no user id). Results are cached by pack hash.
-- Provider: Gemini (GEMINI_API_KEY) or Claude (ANTHROPIC_API_KEY); see settings.LLM_PROVIDER.
+- Provider: OpenRouter (OPENROUTER_API_KEY), Gemini (GEMINI_API_KEY) or Claude (ANTHROPIC_API_KEY); see settings.LLM_PROVIDER.
 """
 
 from __future__ import annotations
@@ -139,23 +139,22 @@ def _strip_fences(raw: str) -> str:
     return raw[start:end + 1] if start != -1 and end != -1 else raw
 
 
-DEFAULT_MODELS = {"gemini": "gemini-3.8-flash", "anthropic": "claude-sonnet-5-5"}
+DEFAULT_MODELS = {"openrouter": "google/gemma-4-31b-it:free", "gemini": "gemini-3.8-flash", "anthropic": "claude-sonnet-5-5"}
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+KEY_FIELDS = {"openrouter": "OPENROUTER_API_KEY", "gemini": "GEMINI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
 def provider() -> str | None:
-    """Which LLM to use: LLM_PROVIDER if set, otherwise whichever API key is present."""
-    p = getattr(settings, "LLM_PROVIDER", "") or ""
-    gem = getattr(settings, "GEMINI_API_KEY", "") or ""
-    ant = getattr(settings, "ANTHROPIC_API_KEY", "") or ""
-    if p == "gemini":
-        return "gemini" if gem else None
-    if p == "anthropic":
-        return "anthropic" if ant else None
-    if gem:
-        return "gemini"
-    if ant:
-        return "anthropic"
+    """Which LLM to use: LLM_PROVIDER if set (and its key exists), otherwise the first key present."""
+    def has(p: str) -> bool:
+        return bool(getattr(settings, KEY_FIELDS[p], "") or "")
+    chosen = getattr(settings, "LLM_PROVIDER", "") or ""
+    if chosen in KEY_FIELDS:
+        return chosen if has(chosen) else None
+    for p in ("openrouter", "gemini", "anthropic"):
+        if has(p):
+            return p
     return None
 
 
@@ -235,6 +234,45 @@ def _call_gemini(content: str, model: str) -> str:
     return "".join(p.get("text", "") for p in parts if not p.get("thought"))
 
 
+def _call_openrouter(content: str, model: str) -> str:
+    """OpenRouter (OpenAI-compatible). The system prompt is sent inside the user message,
+    because some open models (e.g. Gemma) do not accept a separate system role."""
+    import httpx
+
+    r = httpx.post(
+        OPENROUTER_URL,
+        headers={
+            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://fieldshift-one.vercel.app",
+            "X-Title": "Field Shift",
+        },
+        json={
+            "model": model,
+            "messages": [{"role": "user", "content": f"{SYSTEM}\n\n{content}"}],
+            "temperature": 0.2,
+            "max_tokens": 8000,
+            "response_format": {"type": "json_object"},
+        },
+        timeout=55,
+    )
+    if r.status_code >= 400:
+        raise LlmError(f"openrouter HTTP {r.status_code}: {r.text[:300]}")
+    data = r.json()
+    if data.get("error"):
+        raise LlmError(f"openrouter error: {str(data['error'])[:300]}")
+    choices = data.get("choices") or []
+    if not choices:
+        raise LlmError("openrouter returned no answer")
+    finish = choices[0].get("finish_reason")
+    if finish == "length":
+        raise LlmError("openrouter stopped early: answer too long")
+    text = (choices[0].get("message") or {}).get("content") or ""
+    if not text.strip():
+        raise LlmError("openrouter returned an empty answer")
+    return text
+
+
 def _call_anthropic(content: str, model: str) -> str:
     import anthropic
 
@@ -249,6 +287,8 @@ def _call_anthropic(content: str, model: str) -> str:
 def _call(view: dict[str, Any], lang: str, feedback: str | None = None) -> str:
     prov = provider()
     content = _prompt(view, lang, feedback)
+    if prov == "openrouter":
+        return _call_openrouter(content, model_name(prov))
     if prov == "gemini":
         return _call_gemini(content, model_name(prov))
     return _call_anthropic(content, model_name("anthropic"))

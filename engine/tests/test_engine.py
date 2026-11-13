@@ -256,3 +256,38 @@ def test_sync_mode_runs_inline(monkeypatch):
     r = TestClient(main.app).post("/analyze", json={"analysis_id": "a1", "user_id": "u1"},
                                   headers={"X-API-Key": "secret"})
     assert r.status_code == 200 and r.json()["status"] == "finished" and ran == [("a1", "u1", None)]
+
+
+def test_openrouter_request_and_parse(monkeypatch):
+    import json as _json
+    import httpx
+    import app.llm as llm
+    monkeypatch.setattr(llm, "settings", type("S", (), {
+        "LLM_PROVIDER": "openrouter", "OPENROUTER_API_KEY": "or-key", "GEMINI_API_KEY": "g",
+        "ANTHROPIC_API_KEY": "", "LLM_MODEL": ""})())
+    monkeypatch.setattr(llm.cache, "get", lambda *a, **k: None)
+    monkeypatch.setattr(llm.cache, "put", lambda *a, **k: None)
+    assert llm.provider() == "openrouter" and llm.model_name("openrouter") == "google/gemma-4-31b-it:free"
+    pack, _ = analyze_answers(ANSWERS, "ar")
+    seen = {}
+
+    def fake_post(url, headers, json, timeout):
+        seen.update(url=url, headers=headers, body=json)
+        reply = {"overview": "قارنّا الخيارات.", "reminder": "راجع مهندساً زراعياً.", "strategies": [
+            {"id": s.id, "summary": "ملخص.", "why": "w", "evidence": [], "benefits": [], "gaps": [], "risks": []}
+            for s in pack.strategies]}
+        return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {
+            "content": "```json\n" + _json.dumps(reply, ensure_ascii=False) + "\n```"}}]},
+            request=httpx.Request("POST", url))
+    monkeypatch.setattr(httpx, "post", fake_post)
+    out = llm.narrate(pack, "ar")
+    assert out.source == "llm"
+    assert seen["url"] == "https://openrouter.ai/api/v1/chat/completions"
+    assert seen["headers"]["Authorization"] == "Bearer or-key"
+    assert seen["body"]["model"] == "google/gemma-4-31b-it:free"
+    assert seen["body"]["messages"][0]["role"] == "user" and "DATA:" in seen["body"]["messages"][0]["content"]
+
+    monkeypatch.setattr(httpx, "post", lambda url, headers, json, timeout: httpx.Response(
+        429, text='{"error":{"message":"Rate limit exceeded: free-models-per-day"}}', request=httpx.Request("POST", url)))
+    out = llm.narrate(pack, "ar")
+    assert out.source == "template" and "429" in out.fallback_reason
