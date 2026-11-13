@@ -1,0 +1,575 @@
+{
+  "_meta": {
+    "verified": false,
+    "note": "ILLUSTRATIVE placeholder values (TODO-verify). Kc from FAO-56 Table 12 style values; planting dates, season lengths and all indices are rough Nile Delta estimates. income_index, price_volatility, input_cost_index, forage_value, mechanization_need and gaez_suitability_approx are 0-1 relative indices, not money or yields. Have an agronomist or your research plan confirm every value before the demo. extra_water_mm is water needed beyond crop evapotranspiration (for rice: keeping the field flooded plus seepage).",
+    "sources_to_check": [
+      "FAO-56 (Allen et al. 1998) Tables 11-12",
+      "FAO ECOCROP",
+      "FAO GAEZ v4",
+      "Egyptian Ministry of Agriculture crop calendars"
+    ]
+  },
+  "wheat": {
+    "name_en": "Wheat",
+    "name_ar": "قمح",
+    "season": "winter",
+    "plant_month": 11,
+    "plant_day": 15,
+    "season_days": 160,
+    "kc_ini": 0.3,
+    "kc_mid": 1.15,
+    "kc_end": 0.3,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 32,
+    "family": "cereal",
+    "n_fixing": false,
+    "organic_matter": "medium",
+    "deep_root": false,
+    "salinity_tolerance": "moderately_tolerant",
+    "waterlogging_tolerance": "low",
+    "forage_value": 0.35,
+    "income_index": 0.55,
+    "price_volatility": 0.25,
+    "input_cost_index": 0.5,
+    "mechanization_need": 0.6,
+    "gaez_suitability_approx": 0.8,
+    "soil_fit": {
+      "clay": 0.9,
+      "loam": 1.0,
+      "sandy": 0.6
+    },
+    "government_procurement": true,
+    "pest_break_for": [],
+    "extra_water_mm": 0
+  },
+  "berseem": {
+    "name_en": "Berseem (clover)",
+    "name_ar": "برسيم",
+    "season": "winter",
+    "plant_month": 10,
+    "plant_day": 15,
+    "season_days": 190,
+    "kc_ini": 0.4,
+    "kc_mid": 1.0,
+    "kc_end": 0.85,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 30,
+    "family": "legume",
+    "n_fixing": true,
+    "organic_matter": "high",
+    "deep_root": true,
+    "salinity_tolerance": "moderately_sensitive",
+    "waterlogging_tolerance": "medium",
+    "forage_value": 1.0,
+    "income_index": 0.5,
+    "price_volatility": 0.3,
+    "input_cost_index": 0.3,
+    "mechanization_need": 0.3,
+    "gaez_suitability_approx": 0.85,
+    "soil_fit": {
+      "clay": 0.9,
+      "loam": 1.0,
+      "sandy": 0.6
+    },
+    "government_procurement": false,
+    "pest_break_for": [
+      "cereal",
+      "fiber"
+    ],
+    "extra_water_mm": 0
+  },
+  "faba_bean": {
+    "name_en": "Faba bean",
+    "name_ar": "فول بلدي",
+    "season": "winter",
+    "plant_month": 11,
+    "plant_day": 1,
+    "season_days": 160,
+    "kc_ini": 0.5,
+    "kc_mid": 1.15,
+    "kc_end": 0.3,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 30,
+    "family": "legume",
+    "n_fixing": true,
+    "organic_matter": "medium",
+    "deep_root": false,
+    "salinity_tolerance": "moderately_sensitive",
+    "waterlogging_tolerance": "low",
+    "forage_value": 0.3,
+    "income_index": 0.55,
+    "price_volatility": 0.4,
+    "input_cost_index": 0.35,
+    "mechanization_need": 0.4,
+    "gaez_suitability_approx": 0.7,
+    "soil_fit": {
+      "clay": 0.9,
+      "loam": 1.0,
+      "sandy": 0.6
+    },
+    "government_procurement": false,
+    "pest_break_for": [
+      "cereal",
+      "fiber"
+    ],
+    "extra_water_mm": 0
+  },
+  "sugar_beet": {
+    "name_en": "Sugar beet",
+    "name_ar": "بنجر السكر",
+    "season": "winter",
+    "plant_month": 10,
+    "plant_day": 1,
+    "season_days": 200,
+    "kc_ini": 0.35,
+    "kc_mid": 1.2,
+    "kc_end": 0.7,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 35,
+    "family": "beet",
+    "n_fixing": false,
+    "organic_matter": "low",
+    "deep_root": true,
+    "salinity_tolerance": "tolerant",
+    "waterlogging_tolerance": "medium",
+    "forage_value": 0.35,
+    "income_index": 0.6,
+    "price_volatility": 0.2,
+    "input_cost_index": 0.55,
+    "mechanization_need": 0.8,
+    "gaez_suitability_approx": 0.8,
+    "soil_fit": {
+      "clay": 1.0,
+      "loam": 1.0,
+      "sandy": 0.5
+    },
+    "government_procurement": true,
+    "pest_break_for": [
+      "cereal"
+    ],
+    "extra_water_mm": 0
+  },
+  "onion": {
+    "name_en": "Onion",
+    "name_ar": "بصل",
+    "season": "winter",
+    "plant_month": 11,
+    "plant_day": 15,
+    "season_days": 160,
+    "kc_ini": 0.7,
+    "kc_mid": 1.05,
+    "kc_end": 0.75,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 32,
+    "family": "allium",
+    "n_fixing": false,
+    "organic_matter": "low",
+    "deep_root": false,
+    "salinity_tolerance": "sensitive",
+    "waterlogging_tolerance": "low",
+    "forage_value": 0.05,
+    "income_index": 0.75,
+    "price_volatility": 0.8,
+    "input_cost_index": 0.65,
+    "mechanization_need": 0.5,
+    "gaez_suitability_approx": 0.7,
+    "soil_fit": {
+      "clay": 0.7,
+      "loam": 1.0,
+      "sandy": 0.8
+    },
+    "government_procurement": false,
+    "pest_break_for": [
+      "cereal"
+    ],
+    "extra_water_mm": 0
+  },
+  "potato": {
+    "name_en": "Potato",
+    "name_ar": "بطاطس",
+    "season": "winter",
+    "plant_month": 10,
+    "plant_day": 15,
+    "season_days": 120,
+    "kc_ini": 0.5,
+    "kc_mid": 1.15,
+    "kc_end": 0.75,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 29,
+    "family": "solanaceae",
+    "n_fixing": false,
+    "organic_matter": "low",
+    "deep_root": false,
+    "salinity_tolerance": "moderately_sensitive",
+    "waterlogging_tolerance": "low",
+    "forage_value": 0.05,
+    "income_index": 0.8,
+    "price_volatility": 0.7,
+    "input_cost_index": 0.9,
+    "mechanization_need": 0.7,
+    "gaez_suitability_approx": 0.65,
+    "soil_fit": {
+      "clay": 0.6,
+      "loam": 1.0,
+      "sandy": 0.9
+    },
+    "government_procurement": false,
+    "pest_break_for": [
+      "cereal"
+    ],
+    "extra_water_mm": 0
+  },
+  "rice": {
+    "name_en": "Rice",
+    "name_ar": "أرز",
+    "season": "summer",
+    "plant_month": 5,
+    "plant_day": 15,
+    "season_days": 140,
+    "kc_ini": 1.05,
+    "kc_mid": 1.2,
+    "kc_end": 0.75,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 35,
+    "family": "cereal",
+    "n_fixing": false,
+    "organic_matter": "low",
+    "deep_root": false,
+    "salinity_tolerance": "moderately_sensitive",
+    "waterlogging_tolerance": "high",
+    "forage_value": 0.15,
+    "income_index": 0.75,
+    "price_volatility": 0.3,
+    "input_cost_index": 0.6,
+    "mechanization_need": 0.6,
+    "gaez_suitability_approx": 0.85,
+    "soil_fit": {
+      "clay": 1.0,
+      "loam": 0.7,
+      "sandy": 0.1
+    },
+    "government_procurement": true,
+    "pest_break_for": [],
+    "notes": [
+      "Rice area in Egypt is regulated by decree; check whether this field is inside an approved rice zone.",
+      "In the north Delta, flooded rice also washes salt down from the topsoil."
+    ],
+    "extra_water_mm": 450,
+    "application_efficiency": 0.8
+  },
+  "maize": {
+    "name_en": "Maize",
+    "name_ar": "ذرة شامية",
+    "season": "summer",
+    "plant_month": 6,
+    "plant_day": 1,
+    "season_days": 120,
+    "kc_ini": 0.3,
+    "kc_mid": 1.2,
+    "kc_end": 0.5,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 35,
+    "family": "cereal",
+    "n_fixing": false,
+    "organic_matter": "medium",
+    "deep_root": false,
+    "salinity_tolerance": "moderately_sensitive",
+    "waterlogging_tolerance": "low",
+    "forage_value": 0.5,
+    "income_index": 0.55,
+    "price_volatility": 0.35,
+    "input_cost_index": 0.55,
+    "mechanization_need": 0.6,
+    "gaez_suitability_approx": 0.75,
+    "soil_fit": {
+      "clay": 0.9,
+      "loam": 1.0,
+      "sandy": 0.6
+    },
+    "government_procurement": false,
+    "pest_break_for": [],
+    "extra_water_mm": 0
+  },
+  "cotton": {
+    "name_en": "Cotton",
+    "name_ar": "قطن",
+    "season": "summer",
+    "plant_month": 4,
+    "plant_day": 15,
+    "season_days": 175,
+    "kc_ini": 0.35,
+    "kc_mid": 1.18,
+    "kc_end": 0.6,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 38,
+    "family": "fiber",
+    "n_fixing": false,
+    "organic_matter": "low",
+    "deep_root": true,
+    "salinity_tolerance": "tolerant",
+    "waterlogging_tolerance": "low",
+    "forage_value": 0.05,
+    "income_index": 0.6,
+    "price_volatility": 0.45,
+    "input_cost_index": 0.7,
+    "mechanization_need": 0.5,
+    "gaez_suitability_approx": 0.7,
+    "soil_fit": {
+      "clay": 1.0,
+      "loam": 1.0,
+      "sandy": 0.6
+    },
+    "government_procurement": true,
+    "pest_break_for": [
+      "cereal"
+    ],
+    "notes": [
+      "Cotton is labour-heavy at picking time."
+    ],
+    "extra_water_mm": 0
+  },
+  "tomato": {
+    "name_en": "Tomato",
+    "name_ar": "طماطم",
+    "season": "summer",
+    "plant_month": 4,
+    "plant_day": 15,
+    "season_days": 130,
+    "kc_ini": 0.6,
+    "kc_mid": 1.15,
+    "kc_end": 0.8,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 32,
+    "family": "solanaceae",
+    "n_fixing": false,
+    "organic_matter": "low",
+    "deep_root": false,
+    "salinity_tolerance": "moderately_sensitive",
+    "waterlogging_tolerance": "low",
+    "forage_value": 0.05,
+    "income_index": 0.85,
+    "price_volatility": 0.9,
+    "input_cost_index": 0.85,
+    "mechanization_need": 0.5,
+    "gaez_suitability_approx": 0.65,
+    "soil_fit": {
+      "clay": 0.7,
+      "loam": 1.0,
+      "sandy": 0.8
+    },
+    "government_procurement": false,
+    "pest_break_for": [
+      "cereal"
+    ],
+    "extra_water_mm": 0
+  },
+  "sorghum": {
+    "name_en": "Sorghum",
+    "name_ar": "ذرة رفيعة",
+    "season": "summer",
+    "plant_month": 6,
+    "plant_day": 1,
+    "season_days": 110,
+    "kc_ini": 0.3,
+    "kc_mid": 1.0,
+    "kc_end": 0.55,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 38,
+    "family": "cereal",
+    "n_fixing": false,
+    "organic_matter": "medium",
+    "deep_root": true,
+    "salinity_tolerance": "moderately_tolerant",
+    "waterlogging_tolerance": "medium",
+    "forage_value": 0.6,
+    "income_index": 0.4,
+    "price_volatility": 0.3,
+    "input_cost_index": 0.35,
+    "mechanization_need": 0.5,
+    "gaez_suitability_approx": 0.6,
+    "soil_fit": {
+      "clay": 0.9,
+      "loam": 1.0,
+      "sandy": 0.7
+    },
+    "government_procurement": false,
+    "pest_break_for": [],
+    "extra_water_mm": 0
+  },
+  "sesame": {
+    "name_en": "Sesame",
+    "name_ar": "سمسم",
+    "season": "summer",
+    "plant_month": 6,
+    "plant_day": 1,
+    "season_days": 100,
+    "kc_ini": 0.35,
+    "kc_mid": 1.1,
+    "kc_end": 0.25,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 40,
+    "family": "oilseed",
+    "n_fixing": false,
+    "organic_matter": "low",
+    "deep_root": true,
+    "salinity_tolerance": "sensitive",
+    "waterlogging_tolerance": "low",
+    "forage_value": 0.05,
+    "income_index": 0.6,
+    "price_volatility": 0.4,
+    "input_cost_index": 0.35,
+    "mechanization_need": 0.4,
+    "gaez_suitability_approx": 0.55,
+    "soil_fit": {
+      "clay": 0.6,
+      "loam": 1.0,
+      "sandy": 0.9
+    },
+    "government_procurement": false,
+    "pest_break_for": [
+      "cereal"
+    ],
+    "extra_water_mm": 0
+  },
+  "peanut": {
+    "name_en": "Peanut",
+    "name_ar": "فول سوداني",
+    "season": "summer",
+    "plant_month": 5,
+    "plant_day": 15,
+    "season_days": 130,
+    "kc_ini": 0.4,
+    "kc_mid": 1.15,
+    "kc_end": 0.6,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 35,
+    "family": "legume",
+    "n_fixing": true,
+    "organic_matter": "medium",
+    "deep_root": false,
+    "salinity_tolerance": "moderately_sensitive",
+    "waterlogging_tolerance": "low",
+    "forage_value": 0.4,
+    "income_index": 0.65,
+    "price_volatility": 0.4,
+    "input_cost_index": 0.45,
+    "mechanization_need": 0.6,
+    "gaez_suitability_approx": 0.5,
+    "soil_fit": {
+      "clay": 0.3,
+      "loam": 0.8,
+      "sandy": 1.0
+    },
+    "government_procurement": false,
+    "pest_break_for": [
+      "cereal",
+      "fiber"
+    ],
+    "extra_water_mm": 0
+  },
+  "other_vegetables": {
+    "name_en": "Other vegetables",
+    "name_ar": "خضروات أخرى",
+    "season": "summer",
+    "plant_month": 5,
+    "plant_day": 1,
+    "season_days": 100,
+    "kc_ini": 0.6,
+    "kc_mid": 1.05,
+    "kc_end": 0.9,
+    "stage_fractions": [
+      0.15,
+      0.25,
+      0.4,
+      0.2
+    ],
+    "heat_threshold_c": 33,
+    "family": "vegetable",
+    "n_fixing": false,
+    "organic_matter": "low",
+    "deep_root": false,
+    "salinity_tolerance": "moderately_sensitive",
+    "waterlogging_tolerance": "low",
+    "forage_value": 0.05,
+    "income_index": 0.7,
+    "price_volatility": 0.75,
+    "input_cost_index": 0.7,
+    "mechanization_need": 0.5,
+    "gaez_suitability_approx": 0.65,
+    "soil_fit": {
+      "clay": 0.7,
+      "loam": 1.0,
+      "sandy": 0.8
+    },
+    "government_procurement": false,
+    "pest_break_for": [
+      "cereal"
+    ],
+    "extra_water_mm": 0
+  }
+}

@@ -43,9 +43,9 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // The auth callback (and any other non-page routes): refresh only, never
+  // The auth callback and API routes (non-page routes): refresh only, never
   // redirect or prefix a locale.
-  if (pathname.startsWith("/auth/")) {
+  if (pathname.startsWith("/auth/") || pathname.startsWith("/api/")) {
     return supabaseResponse;
   }
 

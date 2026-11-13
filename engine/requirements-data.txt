@@ -1,0 +1,3 @@
+# Optional: only needed to sample / precompute rasters (GAEZ, SMAP, IMERG).
+rasterio>=1.3
+earthaccess>=0.10

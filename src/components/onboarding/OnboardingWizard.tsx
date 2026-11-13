@@ -9,7 +9,7 @@ import {
     TOTAL_QUESTIONS,
     getLocalizedString,
 } from "@/lib/onboarding/questions";
-import type { AnswerValue } from "@/lib/onboarding/types";
+import type { AnswerValue, FieldProfile } from "@/lib/onboarding/types";
 import { useOnboarding } from "@/lib/onboarding/useOnboarding";
 import { ProgressHeader } from "./ProgressHeader";
 import { QuestionShell } from "./QuestionShell";
@@ -28,10 +28,11 @@ import { BrutalButton } from "@/components/brutal-button";
 
 interface OnboardingWizardProps {
     locale: Locale;
-    onComplete: () => void;
+    initialProfile?: FieldProfile | null;
+    onComplete: () => void | Promise<void>;
 }
 
-export function OnboardingWizard({ locale, onComplete }: OnboardingWizardProps) {
+export function OnboardingWizard({ locale, initialProfile, onComplete }: OnboardingWizardProps) {
     const {
         answers,
         currentStep,
@@ -50,7 +51,7 @@ export function OnboardingWizard({ locale, onComplete }: OnboardingWizardProps) 
         currentQuestion,
         progress,
         canGoNext,
-    } = useOnboarding(locale);
+    } = useOnboarding(locale, initialProfile);
 
     const [showSummary, setShowSummary] = useState(false);
     const [direction, setDirection] = useState<"forward" | "backward">("forward");
@@ -79,7 +80,7 @@ export function OnboardingWizard({ locale, onComplete }: OnboardingWizardProps) 
     const handleFinish = useCallback(async () => {
         await finish();
         setShowSummary(false);
-        onComplete();
+        await onComplete();
     }, [finish, onComplete]);
 
     const handleEdit = useCallback((questionId: string) => {

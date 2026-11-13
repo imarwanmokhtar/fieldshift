@@ -160,11 +160,6 @@ const BARE_PERIODS_OPTIONS: QuestionOption[] = [
     { value: "over_3_months", label: { en: "More than 3 months", ar: "أكثر من 3 أشهر" } },
 ];
 
-const YIELD_VS_EXPECTED_OPTIONS: QuestionOption[] = [
-    { value: "better", label: { en: "Better", ar: "أفضل" } },
-    { value: "same", label: { en: "About the same", ar: "تقريباً نفس الشيء" } },
-    { value: "worse", label: { en: "Worse", ar: "أسوأ" } },
-];
 
 const PEST_ISSUES_OPTIONS: QuestionOption[] = [
     { value: "insects", label: { en: "Insects", ar: "حشرات" } },
@@ -191,21 +186,7 @@ const PRIORITIES_OPTIONS: QuestionOption[] = [
     { value: "fodder", label: { en: "Fodder for animals", ar: "علف للحيوانات" } },
 ];
 
-const LIVESTOCK_OPTIONS: QuestionOption[] = [
-    { value: "no", label: { en: "No", ar: "لا" } },
-    { value: "cattle_buffalo", label: { en: "Cattle or buffalo", ar: "أبقار أو جاموس" } },
-    { value: "sheep_goats", label: { en: "Sheep or goats", ar: "أغنام أو ماعز" } },
-    { value: "poultry", label: { en: "Poultry", ar: "دواجن" } },
-];
 
-const MARKET_OPTIONS: QuestionOption[] = [
-    { value: "government", label: { en: "Government procurement", ar: "توريد حكومي" } },
-    { value: "cooperative", label: { en: "Cooperative", ar: "جمعية تعاونية" } },
-    { value: "trader", label: { en: "Trader", ar: "تاجر" } },
-    { value: "local_market", label: { en: "Local market", ar: "سوق محلي" } },
-    { value: "contract", label: { en: "Contract", ar: "عقد" } },
-    { value: "own_use", label: { en: "Own use only", ar: "استخدام شخصي فقط" } },
-];
 
 const RISK_TOLERANCE_OPTIONS: QuestionOption[] = [
     { value: "stick_to_known", label: { en: "Stick to what I know", ar: "أبقى على ما أعرفه" } },
@@ -243,7 +224,7 @@ export const ONBOARDING_QUESTIONS: readonly QuestionConfig[] = [
     { id: "drainage", section: "B. YOUR SOIL", title: { en: "After irrigation, how fast does the water sink in?", ar: "بعد الري، ما سرعة تسرب الماء؟" }, type: "single", options: DRAINAGE_OPTIONS, allowUnknown: true },
     { id: "salinity", section: "B. YOUR SOIL", title: { en: "Do you see white salt crust or patchy, poor growth?", ar: "هل ترى قشرة ملح بيضاء أو نمو ضعيف متقطع؟" }, type: "single", options: SALINITY_OPTIONS, allowUnknown: true },
     { id: "soil_issues", section: "B. YOUR SOIL", title: { en: "Which soil problems have you seen?", ar: "أي مشاكل تربة رأيتها؟" }, type: "multi", options: SOIL_ISSUES_OPTIONS, allowUnknown: true },
-    { id: "organic_inputs", section: "B. YOUR SOIL", title: { en: "Do you add manure or compost?", ar: "هل تضيف سماداً بلدياً أو كومبوست؟" }, type: "single", options: ORGANIC_INPUTS_OPTIONS, allowUnknown: true },
+    { id: "organic_inputs", section: "B. YOUR SOIL", title: { en: "Do you add manure or compost?", ar: "هل تضيف سماداً بلدياً أو خليط الأسمدة؟" }, type: "single", options: ORGANIC_INPUTS_OPTIONS, allowUnknown: true },
     { id: "soil_test", section: "B. YOUR SOIL", title: { en: "Do you have a soil test result?", ar: "هل لديك نتيجة تحليل تربة؟" }, type: "soilTest", options: SOIL_TEST_OPTIONS, allowUnknown: true },
 
     { id: "water_source", section: "C. YOUR WATER", title: { en: "Where does your irrigation water come from?", ar: "من أين يأتي ماء ريّك؟" }, type: "multi", options: WATER_SOURCE_OPTIONS, allowUnknown: true },
@@ -256,16 +237,12 @@ export const ONBOARDING_QUESTIONS: readonly QuestionConfig[] = [
     { id: "last_crop", section: "D. FIELD HISTORY", title: { en: "What did you grow most recently?", ar: "ماذا زرعت مؤخراً؟" }, help: { en: "Crop plus season (Winter ≈ Nov–Apr, Summer ≈ May–Oct)", ar: "المحصول مع الموسم (شتاء ≈ تشرين الثاني–أبريل، صيف ≈ مايو–أكتوبر)" }, type: "cropAndSeason", options: [...CROP_OPTIONS, ...SEASON_OPTIONS], allowUnknown: true },
     { id: "prev_crop", section: "D. FIELD HISTORY", title: { en: "And what did you grow before that?", ar: "وماذا زرعت قبل ذلك؟" }, help: { en: "Crop plus season (Winter ≈ Nov–Apr, Summer ≈ May–Oct)", ar: "المحصول مع الموسم (شتاء ≈ تشرين الثاني–أبريل، صيف ≈ مايو–أكتوبر)" }, type: "cropAndSeason", options: [...CROP_OPTIONS, ...SEASON_OPTIONS], allowUnknown: true },
     { id: "bare_periods", section: "D. FIELD HISTORY", title: { en: "How long is the field usually empty between crops?", ar: "كم مدة بقاء الحقل فارغاً بين المحاصيل؟" }, type: "single", options: BARE_PERIODS_OPTIONS, allowUnknown: true },
-    { id: "yield_vs_expected", section: "D. FIELD HISTORY", title: { en: "How were your last yields compared with neighbors or past years?", ar: "كيف كانت محاصيلك الأخيرة مقارنة بالجيران أو السنوات السابقة؟" }, type: "single", options: YIELD_VS_EXPECTED_OPTIONS, allowUnknown: true },
     { id: "pest_issues", section: "D. FIELD HISTORY", title: { en: "Which problems have you had?", ar: "أي مشاكل واجهتها؟" }, type: "multi", options: PEST_ISSUES_OPTIONS, allowUnknown: true },
     { id: "fertilizer_level", section: "D. FIELD HISTORY", title: { en: "How much chemical fertilizer do you use?", ar: "كم كمية السماد الكيماوي التي تستخدمها؟" }, type: "single", options: FERTILIZER_LEVEL_OPTIONS, allowUnknown: true },
 
     { id: "priorities", section: "E. YOUR GOALS", title: { en: "What matters most to you? Pick up to 3, in order", ar: "ما الأهم بالنسبة لك؟ اختر حتى 3، بالترتيب" }, type: "rank", options: PRIORITIES_OPTIONS, required: true, allowUnknown: false },
-    { id: "livestock", section: "E. YOUR GOALS", title: { en: "Do you keep animals that need fodder?", ar: "هل تربي حيوانات تحتاج علفاً؟" }, type: "single", options: LIVESTOCK_OPTIONS, allowUnknown: true },
-    { id: "market", section: "E. YOUR GOALS", title: { en: "Where do you usually sell?", ar: "أين تبيع عادةً؟" }, type: "multi", options: MARKET_OPTIONS, allowUnknown: true },
     { id: "risk_tolerance", section: "E. YOUR GOALS", title: { en: "Would you try a new crop?", ar: "هل ستجرب محصولاً جديداً؟" }, type: "single", options: RISK_TOLERANCE_OPTIONS, allowUnknown: true },
     { id: "equipment", section: "E. YOUR GOALS", title: { en: "What do you have available?", ar: "ما المتاح لديك؟" }, type: "multi", options: EQUIPMENT_OPTIONS, allowUnknown: true },
-    { id: "crop_filter", section: "E. YOUR GOALS", title: { en: "Any crops you definitely want, or definitely not?", ar: "أي محاصيل تريدها بالتأكيد، أو لا تريدها بالتأكيد؟" }, help: { en: "Select include and/or exclude from the crop list", ar: "اختر تضمن و/أو استبعاد من قائمة المحاصيل" }, type: "multi", options: CROP_OPTIONS, allowUnknown: true },
     { id: "horizon", section: "E. YOUR GOALS", title: { en: "How far ahead are you planning?", ar: "إلى أي مدى تخطط للأمام؟" }, type: "single", options: HORIZON_OPTIONS, allowUnknown: true },
 ] as const;
 

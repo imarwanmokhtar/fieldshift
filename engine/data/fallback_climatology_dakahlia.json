@@ -1,0 +1,17 @@
+{
+  "_note": "APPROXIMATE monthly climatology for the Mansoura / Dakahlia area, typed in from general knowledge as an offline fallback. NOT NASA data. Used only when NASA POWER cannot be reached; the evidence pack then marks climate as 'fallback_climatology' with low confidence. Replace with a real POWER export when you can.",
+  "monthly": [
+    {"month": 1,  "T2M_MAX": 19.5, "T2M_MIN": 7.5,  "PRECTOTCORR_MONTH_MM": 10, "ALLSKY_SFC_SW_DWN": 12.0, "RH2M": 70, "WS2M": 2.6},
+    {"month": 2,  "T2M_MAX": 20.5, "T2M_MIN": 8.0,  "PRECTOTCORR_MONTH_MM": 7,  "ALLSKY_SFC_SW_DWN": 15.0, "RH2M": 67, "WS2M": 2.8},
+    {"month": 3,  "T2M_MAX": 23.5, "T2M_MIN": 10.0, "PRECTOTCORR_MONTH_MM": 5,  "ALLSKY_SFC_SW_DWN": 19.0, "RH2M": 63, "WS2M": 3.0},
+    {"month": 4,  "T2M_MAX": 27.5, "T2M_MIN": 13.0, "PRECTOTCORR_MONTH_MM": 2,  "ALLSKY_SFC_SW_DWN": 23.0, "RH2M": 57, "WS2M": 3.0},
+    {"month": 5,  "T2M_MAX": 31.5, "T2M_MIN": 16.5, "PRECTOTCORR_MONTH_MM": 1,  "ALLSKY_SFC_SW_DWN": 26.0, "RH2M": 54, "WS2M": 2.9},
+    {"month": 6,  "T2M_MAX": 33.5, "T2M_MIN": 20.0, "PRECTOTCORR_MONTH_MM": 0,  "ALLSKY_SFC_SW_DWN": 28.0, "RH2M": 58, "WS2M": 2.8},
+    {"month": 7,  "T2M_MAX": 34.0, "T2M_MIN": 22.0, "PRECTOTCORR_MONTH_MM": 0,  "ALLSKY_SFC_SW_DWN": 27.5, "RH2M": 64, "WS2M": 2.6},
+    {"month": 8,  "T2M_MAX": 34.0, "T2M_MIN": 22.5, "PRECTOTCORR_MONTH_MM": 0,  "ALLSKY_SFC_SW_DWN": 25.5, "RH2M": 66, "WS2M": 2.4},
+    {"month": 9,  "T2M_MAX": 32.5, "T2M_MIN": 20.5, "PRECTOTCORR_MONTH_MM": 0,  "ALLSKY_SFC_SW_DWN": 22.0, "RH2M": 65, "WS2M": 2.4},
+    {"month": 10, "T2M_MAX": 29.5, "T2M_MIN": 17.5, "PRECTOTCORR_MONTH_MM": 3,  "ALLSKY_SFC_SW_DWN": 17.5, "RH2M": 66, "WS2M": 2.3},
+    {"month": 11, "T2M_MAX": 25.0, "T2M_MIN": 13.0, "PRECTOTCORR_MONTH_MM": 6,  "ALLSKY_SFC_SW_DWN": 13.5, "RH2M": 69, "WS2M": 2.3},
+    {"month": 12, "T2M_MAX": 21.0, "T2M_MIN": 9.0,  "PRECTOTCORR_MONTH_MM": 10, "ALLSKY_SFC_SW_DWN": 11.0, "RH2M": 71, "WS2M": 2.5}
+  ]
+}

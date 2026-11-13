@@ -1,0 +1,38 @@
+"""Engine settings, read from environment variables (and engine/.env if present)."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+ENGINE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(ENGINE_DIR / ".env")
+
+
+def _env(name: str, default: str = "") -> str:
+    return os.getenv(name, default).strip()
+
+
+@dataclass(frozen=True)
+class Settings:
+    ENGINE_API_KEY: str = field(default_factory=lambda: _env("ENGINE_API_KEY"))
+    SUPABASE_URL: str = field(default_factory=lambda: _env("SUPABASE_URL").rstrip("/"))
+    SUPABASE_SERVICE_ROLE_KEY: str = field(default_factory=lambda: _env("SUPABASE_SERVICE_ROLE_KEY"))
+    ANTHROPIC_API_KEY: str = field(default_factory=lambda: _env("ANTHROPIC_API_KEY"))
+    LLM_MODEL: str = field(default_factory=lambda: _env("LLM_MODEL", "claude-sonnet-5-5"))
+    COPERNICUS_CLIENT_ID: str = field(default_factory=lambda: _env("COPERNICUS_CLIENT_ID"))
+    COPERNICUS_CLIENT_SECRET: str = field(default_factory=lambda: _env("COPERNICUS_CLIENT_SECRET"))
+    # Return realistic mock values for the stubbed layers (NDVI, SMAP, IMERG).
+    # Mocked layers are always labelled "mock" in the evidence pack.
+    USE_MOCK_LAYERS: bool = field(default_factory=lambda: _env("USE_MOCK_LAYERS", "false").lower() in ("1", "true", "yes"))
+    CACHE_DIR: Path = field(default_factory=lambda: Path(_env("CACHE_DIR", str(ENGINE_DIR / ".cache"))))
+    DATA_DIR: Path = ENGINE_DIR / "data"
+    # Years of NASA POWER history to analyse.
+    POWER_START: str = field(default_factory=lambda: _env("POWER_START", "20150101"))
+    POWER_END: str = field(default_factory=lambda: _env("POWER_END", "20251231"))
+
+
+settings = Settings()
