@@ -139,7 +139,7 @@ def _strip_fences(raw: str) -> str:
     return raw[start:end + 1] if start != -1 and end != -1 else raw
 
 
-DEFAULT_MODELS = {"gemini": "gemini-2.5-flash", "anthropic": "claude-sonnet-5-5"}
+DEFAULT_MODELS = {"gemini": "gemini-3.8-flash", "anthropic": "claude-sonnet-5-5"}
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
@@ -195,6 +195,14 @@ class LlmError(RuntimeError):
     pass
 
 
+def _thinking_config(model: str) -> dict:
+    """We only need rephrasing, so keep "thinking" as low as the model allows (faster, cheaper).
+    Gemini 2.5 uses a token budget (0 = off); Gemini 3.x uses a level ("low" is the lowest on 3.8)."""
+    if model.startswith("gemini-2."):
+        return {"thinkingBudget": 0}
+    return {"thinkingLevel": "low"}
+
+
 def _call_gemini(content: str, model: str) -> str:
     import httpx
 
@@ -209,11 +217,10 @@ def _call_gemini(content: str, model: str) -> str:
                 "maxOutputTokens": 16384,
                 "responseMimeType": "application/json",
                 "responseSchema": GEMINI_SCHEMA,
-                # 2.5 Flash: 0 turns "thinking" off -> faster and cheaper; we only need rephrasing.
-                "thinkingConfig": {"thinkingBudget": 0},
+                "thinkingConfig": _thinking_config(model),
             },
         },
-        timeout=45,
+        timeout=55,
     )
     if r.status_code >= 400:
         raise LlmError(f"gemini HTTP {r.status_code}: {r.text[:300]}")
@@ -266,7 +273,7 @@ def narrate(pack: EvidencePack, lang: str = "en") -> NarrativeOut:
     reason = "unknown"
     started = time.monotonic()
     for attempt in range(2):          # first try + one retry
-        if attempt and time.monotonic() - started > 35:
+        if attempt and time.monotonic() - started > 25:
             reason += " (no time left to retry)"
             break
         try:

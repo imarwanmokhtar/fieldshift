@@ -224,7 +224,7 @@ def test_gemini_request_and_parse(monkeypatch):
         "LLM_PROVIDER": "", "GEMINI_API_KEY": "g-key", "ANTHROPIC_API_KEY": "", "LLM_MODEL": ""})())
     monkeypatch.setattr(llm.cache, "get", lambda *a, **k: None)
     monkeypatch.setattr(llm.cache, "put", lambda *a, **k: None)
-    assert llm.provider() == "gemini" and llm.model_name("gemini") == "gemini-2.5-flash"
+    assert llm.provider() == "gemini" and llm.model_name("gemini") == "gemini-3.8-flash"
     pack, _ = analyze_answers(ANSWERS, "ar")
     seen = {}
 
@@ -238,7 +238,9 @@ def test_gemini_request_and_parse(monkeypatch):
     monkeypatch.setattr(httpx, "post", fake_post)
     out = llm.narrate(pack, "ar")
     assert out.source == "llm" and out.lang == "ar"
-    assert seen["url"].endswith("/models/gemini-2.5-flash:generateContent")
+    assert seen["url"].endswith("/models/gemini-3.8-flash:generateContent")
+    assert seen["body"]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"}
+    assert llm._thinking_config("gemini-2.5-flash") == {"thinkingBudget": 0}
     assert seen["headers"]["x-goog-api-key"] == "g-key"
     assert seen["body"]["generationConfig"]["responseMimeType"] == "application/json"
     assert seen["body"]["generationConfig"]["responseSchema"]["required"] == ["overview", "strategies", "reminder"]
