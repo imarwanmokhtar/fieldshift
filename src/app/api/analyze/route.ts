@@ -6,7 +6,7 @@ export const maxDuration = 90;
 /**
  * Starts an analysis. Server only: the browser never talks to the Python engine.
  * 1. checks the login, 2. creates a pending `analyses` row, 3. asks the engine to fill it.
- * Body (optional): { "lang": "ar" | "en" }
+ * Body (optional): { "lang": "ar" | "en", "field_id": "<uuid>" }  (no field_id = the latest field)
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -22,19 +22,21 @@ export async function POST(request: Request) {
   }
 
   let lang: "ar" | "en" = "ar";
+  let fieldId: string | null = null;
   try {
     const body = await request.json();
     if (body?.lang === "en") lang = "en";
+    if (typeof body?.field_id === "string" && /^[0-9a-f-]{36}$/i.test(body.field_id)) fieldId = body.field_id;
   } catch {
     // empty body is fine
   }
 
-  const { data: profile } = await supabase
-    .from("field_profiles")
-    .select("status")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (profile?.status !== "completed") {
+  // The field to analyse: the one asked for (it must be the user's), else the latest one.
+  let fieldQuery = supabase.from("field_profiles").select("id,status").eq("user_id", user.id);
+  fieldQuery = fieldId ? fieldQuery.eq("id", fieldId) : fieldQuery.order("updated_at", { ascending: false }).limit(1);
+  const { data: profile } = await fieldQuery.maybeSingle();
+  if (!profile) return Response.json({ error: "field_not_found" }, { status: 404 });
+  if (profile.status !== "completed") {
     return Response.json({ error: "profile_incomplete" }, { status: 400 });
   }
 
@@ -48,6 +50,7 @@ export async function POST(request: Request) {
     .from("analyses")
     .select("id,status,created_at,updated_at")
     .eq("user_id", user.id)
+    .eq("field_id", profile.id)
     .eq("lang", lang)
     .in("status", ["pending", "running"])
     .gte("created_at", fiveMinutesAgo)
@@ -67,7 +70,7 @@ export async function POST(request: Request) {
 
   const { data: analysis, error } = await supabase
     .from("analyses")
-    .insert({ user_id: user.id, lang })
+    .insert({ user_id: user.id, field_id: profile.id, lang })
     .select("id")
     .single();
   if (error || !analysis) {

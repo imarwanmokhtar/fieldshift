@@ -34,6 +34,7 @@ class AnalyzeRequest(BaseModel):
 
 class CompareRequest(BaseModel):
     user_id: str
+    field_id: str | None = None
     crop: str
     season: Literal["winter", "summer"] | None = None
 
@@ -54,7 +55,9 @@ def analyze(req: AnalyzeRequest, bg: BackgroundTasks, response: Response, x_api_
 def compare(req: CompareRequest, x_api_key: str = Header(...)):
     """Score the farmer's own crop choice next to their current rotation and the best option."""
     _check_key(x_api_key)
-    row = db.get_profile(req.user_id)
+    row = db.get_profile_by_id(req.field_id) if req.field_id else db.get_profile(req.user_id)
+    if row and row.get("user_id") != req.user_id:
+        row = None
     if not row:
         raise HTTPException(404, "profile not found")
     try:
@@ -64,6 +67,7 @@ def compare(req: CompareRequest, x_api_key: str = Header(...)):
 
 
 class LayersRequest(BaseModel):
+    field_id: str
     user_id: str
     lat: float
     lng: float
@@ -76,7 +80,7 @@ def layers_prefetch(req: LayersRequest, x_api_key: str = Header(...)):
     _check_key(x_api_key)
     if not (-90 <= req.lat <= 90 and -180 <= req.lng <= 180):
         raise HTTPException(422, "invalid coordinates")
-    row = field_layers.prefetch(req.user_id, req.lat, req.lng)
+    row = field_layers.prefetch(req.field_id, req.user_id, req.lat, req.lng)
     return {"status": row.get("status"), "tasks": list((row.get("tasks") or {}).keys())}
 
 
@@ -84,7 +88,8 @@ def layers_prefetch(req: LayersRequest, x_api_key: str = Header(...)):
 def layers_status(req: LayersRequest, x_api_key: str = Header(...)):
     """Collect finished requests (short time budget) and report what is ready."""
     _check_key(x_api_key)
-    feats, state, sources = field_layers.for_analysis(req.user_id, req.lat, req.lng, budget_s=settings.LAYERS_BUDGET_S)
+    feats, state, sources = field_layers.for_analysis(req.field_id, req.user_id, req.lat, req.lng,
+                                                      budget_s=settings.LAYERS_BUDGET_S)
     return {"state": state, "layers": sorted((feats or {}).keys()), "sources": sources}
 
 

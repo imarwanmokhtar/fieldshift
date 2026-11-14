@@ -29,7 +29,8 @@ import { BrutalButton } from "@/components/brutal-button";
 interface OnboardingWizardProps {
     locale: Locale;
     initialProfile?: FieldProfile | null;
-    onComplete: () => void | Promise<void>;
+    /** Called after Finish saved the field; receives the field id. */
+    onComplete: (fieldId: string) => void | Promise<void>;
 }
 
 export function OnboardingWizard({ locale, initialProfile, onComplete }: OnboardingWizardProps) {
@@ -45,6 +46,7 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
         goToStep,
         updateAnswer,
         saveNow,
+        saveProgress,
         finish,
         isFirstStep,
         isLastStep,
@@ -68,19 +70,24 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
 
     const handleNext = useCallback(() => {
         if (!canGoNext) return;
-        // Leaving the pin question: start the NASA satellite requests for this field now,
-        // so they are ready by the time the analysis runs. Fire and forget.
+        // Leaving the pin question: save the field (it needs an id), then start the NASA SMAP
+        // request for it, so the data is ready by the time the analysis runs. Fire and forget.
         const pin = currentQuestion?.id === "pin" ? (answers.pin as { lat?: number; lng?: number } | undefined) : undefined;
         if (pin && Number.isFinite(pin.lat) && Number.isFinite(pin.lng)) {
-            fetch("/api/layers/prefetch", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ lat: pin.lat, lng: pin.lng }),
-            }).catch(() => {});
+            saveProgress()
+                .then((fieldId) => {
+                    if (!fieldId) return;
+                    return fetch("/api/layers/prefetch", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ field_id: fieldId, lat: pin.lat, lng: pin.lng }),
+                    });
+                })
+                .catch(() => {});
         }
         setDirection("forward");
         goNext();
-    }, [canGoNext, goNext, currentQuestion, answers.pin]);
+    }, [canGoNext, goNext, currentQuestion, answers.pin, saveProgress]);
 
     const handleBack = useCallback(() => {
         setDirection("backward");
@@ -88,9 +95,10 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
     }, [goBack]);
 
     const handleFinish = useCallback(async () => {
-        await finish();
+        const fieldId = await finish();
+        if (!fieldId) return;            // the save failed: the error is shown, stay on the summary
         setShowSummary(false);
-        await onComplete();
+        await onComplete(fieldId);
     }, [finish, onComplete]);
 
     const handleEdit = useCallback((questionId: string) => {

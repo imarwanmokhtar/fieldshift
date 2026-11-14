@@ -59,7 +59,7 @@ async function ResultsContent({
   // RLS limits this to the signed-in user's own rows.
   const { data } = await supabase
     .from("analyses")
-    .select("id,status,stage,lang,result,narrative,error,created_at,updated_at")
+    .select("id,status,stage,lang,result,narrative,error,created_at,updated_at,field_id")
     .eq("id", id)
     .maybeSingle();
   if (!data) notFound();

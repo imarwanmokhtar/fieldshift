@@ -42,8 +42,10 @@ export interface UseOnboardingReturn extends OnboardingState {
     goBack: () => void;
     goToStep: (step: number) => void;
     updateAnswer: (id: string, value: AnswerValue) => void;
-    saveNow: () => Promise<void>;
-    finish: () => Promise<void>;
+    saveNow: () => Promise<string | null>;
+    saveProgress: () => Promise<string | null>;
+    finish: () => Promise<string | null>;
+    fieldId: string | null;
     isFirstStep: boolean;
     isLastStep: boolean;
     currentQuestion: QuestionConfig;

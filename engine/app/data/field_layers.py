@@ -5,13 +5,14 @@ farmer drops the pin (prefetch) and COLLECTED later (on the next call, or at the
 start of an analysis). Only small processed summaries are stored (`field_layers`
 table); the analysis never waits on NASA for more than a short time budget.
 
-Datasets (product ids as listed by AppEEARS):
-  recent  (last ~3 years): HLS L30/S30 NDVI + NDWI + Fmask (30 m), ECOSTRESS ET (70 m),
-                           SMAP L4 root-zone soil moisture (9 km)
-  history (2015 -> now):   MODIS NDVI MOD13Q1 (250 m), MODIS ET MOD16A2GF (500 m)
-  static:                  SRTM elevation (30 m)
-Missing values are dropped, never filled; short NDVI gaps (<= 20 days) are
-interpolated and flagged so the confidence score can account for them.
+ACTIVE dataset (product id as listed by AppEEARS):
+  smap (2015-04 -> now): SMAP L4 root-zone soil moisture SPL4SMGP (9 km, 3-hourly).
+  The full record is requested so the last 90 days can be compared with the same
+  90 days of every earlier year (the L4 percentile layer comes back empty from
+  AppEEARS at some points, e.g. all -9999 near Giza in the first live test).
+The processing code for HLS NDVI, MODIS NDVI/ET, ECOSTRESS ET and SRTM elevation is
+kept below but switched off (not requested): see INACTIVE_GROUPS to turn one back on.
+Missing values are dropped, never filled. One row per FIELD (a user can have several).
 """
 
 from __future__ import annotations
@@ -43,9 +44,20 @@ STEP_DAYS = 10
 MAX_INTERP_BINS = 2                      # interpolate gaps of up to 20 days, flag them
 PIN_TOLERANCE_DEG = 1e-4                 # ~10 m: same field
 REFRESH_AFTER_DAYS = 30
+SMAP_START = date(2015, 4, 1)            # SMAP L4 record starts 31 March 2015
+SMAP_WINDOW_DAYS = 90
+SMAP_MIN_COVERAGE = 0.8                  # a past-year window counts only if >= 80% of its days have data
 
 
 def _groups(today: date) -> dict[str, dict[str, Any]]:
+    """The AppEEARS requests submitted for a field. Only SMAP is active."""
+    return {"smap": {"start": SMAP_START, "end": today, "layers": [
+        (SMAP, "Geophysical_Data_sm_rootzone"), (SMAP, "Geophysical_Data_sm_rootzone_pctl"),
+    ]}}
+
+
+def INACTIVE_GROUPS(today: date) -> dict[str, dict[str, Any]]:
+    """Switched-off requests, kept for later (HLS, ECOSTRESS, MODIS, SRTM)."""
     return {
         "recent": {"start": date(today.year - 2, 1, 1), "end": today, "layers": [
             (HLS_L30_VI, "NDVI"), (HLS_L30_VI, "NDWI"), (HLS_L30, "Fmask"),
@@ -182,20 +194,43 @@ def process_ecostress(csvs: dict[str, str]) -> dict[str, Any]:
     }}
 
 
+def smap_vs_past_years(daily: pd.Series, window_days: int = SMAP_WINDOW_DAYS) -> dict[str, Any]:
+    """Compare the mean of the last `window_days` with the same calendar window of every
+    earlier year that has enough data. Returns counts, never an invented percentile."""
+    end = daily.index.max()
+    current = daily[daily.index > end - pd.Timedelta(days=window_days)]
+    past = []
+    for k in range(1, 30):
+        e = end - pd.DateOffset(years=k)
+        w = daily[(daily.index > e - pd.Timedelta(days=window_days)) & (daily.index <= e)]
+        if e < daily.index.min():
+            break
+        if len(w) >= SMAP_MIN_COVERAGE * window_days:
+            past.append(float(w.mean()))
+    now = float(current.mean())
+    out: dict[str, Any] = {"rootzone_last90_m3m3": round(now, 3), "n_years": len(past)}
+    if past:
+        out["years_drier_than_now"] = int(sum(v < now for v in past))
+        out["anomaly_m3m3"] = round(now - float(np.mean(past)), 3)
+    return out
+
+
 def process_smap(csvs: dict[str, str]) -> dict[str, Any]:
     sm = _layer(csvs, SMAP, "Geophysical_Data_sm_rootzone", fill=-9999.0, valid=(0.0, 1.0))
     pct = _layer(csvs, SMAP, "Geophysical_Data_sm_rootzone_pctl", fill=-9999.0, valid=(0.0, 100.0))
     if sm.empty and pct.empty:
         return {}
     out: dict[str, Any] = {}
-    if len(pct):
+    if len(pct):                                   # NASA's own percentile, when AppEEARS returns it
         daily = pct.groupby(pct.index.normalize()).mean()
-        last = daily[daily.index > daily.index.max() - pd.Timedelta(days=90)]
+        last = daily[daily.index > daily.index.max() - pd.Timedelta(days=SMAP_WINDOW_DAYS)]
         out["rootzone_pctl_last90"] = round(float(last.mean()), 0)
-        out["last_date"] = str(daily.index.max().date())
     if len(sm):
         daily_sm = sm.groupby(sm.index.normalize()).mean()
         out["rootzone_mean_m3m3"] = round(float(daily_sm.mean()), 3)
+        out["first_date"] = str(daily_sm.index.min().date())
+        out["last_date"] = str(daily_sm.index.max().date())
+        out.update(smap_vs_past_years(daily_sm))
     return {"smap": out}
 
 
@@ -205,6 +240,7 @@ def process_srtm(csvs: dict[str, str]) -> dict[str, Any]:
 
 
 PROCESSORS = {
+    "smap": (process_smap,),
     "recent": (process_hls, process_ecostress, process_smap),
     "history": (process_modis_ndvi, process_modis_et),
     "static": (process_srtm,),
@@ -246,12 +282,14 @@ def _stale(row: dict[str, Any]) -> bool:
     return (datetime.now(timezone.utc) - updated).days > REFRESH_AFTER_DAYS
 
 
-def prefetch(user_id: str, lat: float, lng: float, today: date | None = None) -> dict[str, Any]:
-    """Submit the AppEEARS requests for this pin, unless they already exist and are fresh."""
+def prefetch(field_id: str, user_id: str, lat: float, lng: float, today: date | None = None,
+             force: bool = False) -> dict[str, Any]:
+    """Submit the AppEEARS requests for this field's pin, unless they already exist and are fresh
+    (`force` resubmits anyway, e.g. after the requested period changed)."""
     if not appeears.configured():
         return {"status": "unavailable"}
-    row = db.get_field_layers(user_id)
-    if row and _same_pin(row, lat, lng) and row.get("status") in ("submitted", "processing", "partial", "done") \
+    row = db.get_field_layers(field_id)
+    if not force and row and _same_pin(row, lat, lng) and row.get("status") in ("submitted", "processing", "partial", "done") \
             and not (row.get("status") == "done" and _stale(row)):
         return row
     tasks, errors = {}, []
@@ -262,7 +300,7 @@ def prefetch(user_id: str, lat: float, lng: float, today: date | None = None) ->
         except Exception as exc:
             log.warning("AppEEARS submit %s failed: %s", name, exc)
             errors.append(f"{name}: {exc}"[:200])
-    row = {"user_id": user_id, "lat": lat, "lng": lng, "tasks": tasks, "features": {}, "sources": [],
+    row = {"field_id": field_id, "user_id": user_id, "lat": lat, "lng": lng, "tasks": tasks, "features": {}, "sources": [],
            "status": "submitted" if tasks else "failed", "error": "; ".join(errors) or None}
     db.upsert_field_layers(row)
     return row
@@ -306,11 +344,12 @@ def collect(row: dict[str, Any], budget_s: float = 20.0) -> dict[str, Any]:
     row = {**row, "tasks": tasks, "features": features, "status": status,
            "sources": sources_for(features, _now()[:10]) if features else row.get("sources", [])}
     if changed or status != old_status:
-        db.upsert_field_layers({k: row[k] for k in ("user_id", "lat", "lng", "tasks", "features", "sources", "status")})
+        db.upsert_field_layers({k: row[k] for k in ("field_id", "user_id", "lat", "lng", "tasks", "features", "sources", "status")})
     return row
 
 
-def for_analysis(user_id: str, lat: float, lng: float, budget_s: float = 20.0) -> tuple[dict[str, Any] | None, str, list]:
+def for_analysis(field_id: str, user_id: str, lat: float, lng: float,
+                 budget_s: float = 20.0) -> tuple[dict[str, Any] | None, str, list]:
     """Features to use now, a state for the data notes, and their sources.
 
     state: 'ready' | 'partial' | 'processing' | 'requested' | 'unavailable' | 'failed'
@@ -318,14 +357,14 @@ def for_analysis(user_id: str, lat: float, lng: float, budget_s: float = 20.0) -
     if not appeears.configured():
         return None, "unavailable", []
     try:
-        row = db.get_field_layers(user_id)
+        row = db.get_field_layers(field_id)
         if not row or not _same_pin(row, lat, lng):
-            row = prefetch(user_id, lat, lng)
+            row = prefetch(field_id, user_id, lat, lng)
             return None, "requested" if row.get("status") == "submitted" else "failed", []
         if row.get("status") in ("submitted", "processing"):
             row = collect(row, budget_s)
         elif row.get("status") == "done" and _stale(row):
-            prefetch(user_id, lat, lng)                     # refresh for next time; use what we have now
+            prefetch(field_id, user_id, lat, lng)           # refresh for next time; use what we have now
         feats = row.get("features") or None
         state = {"done": "ready", "partial": "partial", "failed": "failed"}.get(row.get("status"), "processing")
         if state == "processing" and feats:

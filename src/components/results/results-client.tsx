@@ -45,7 +45,7 @@ export function ResultsClient({ locale, initial }: { locale: Locale; initial: An
     const timer = setInterval(async () => {
       const { data } = await supabase
         .from("analyses")
-        .select("id,status,stage,lang,result,narrative,error,created_at,updated_at")
+        .select("id,status,stage,lang,result,narrative,error,created_at,updated_at,field_id")
         .eq("id", row.id)
         .maybeSingle();
       if (data) setRow(data as AnalysisRow);
@@ -60,7 +60,7 @@ export function ResultsClient({ locale, initial }: { locale: Locale; initial: An
   async function rerun(lang: Locale) {
     setBusy(true);
     try {
-      const id = await startAnalysis(lang);
+      const id = await startAnalysis(lang, row.field_id);
       router.push(`/${lang}/dashboard/results/${id}`);
     } catch (err) {
       toast.error(`${t.startError} (${err instanceof Error ? err.message : "unknown"})`);

@@ -35,7 +35,18 @@ def _url(table: str) -> str:
 
 
 def get_profile(user_id: str) -> dict[str, Any] | None:
-    r = httpx.get(_url("field_profiles"), params={"user_id": f"eq.{user_id}", "select": "*"},
+    """The user's most recently updated field (users can have several fields)."""
+    r = httpx.get(_url("field_profiles"), params={"user_id": f"eq.{user_id}", "select": "*",
+                                                  "order": "updated_at.desc", "limit": "1"},
+                  headers=_headers(), timeout=20)
+    if r.status_code >= 400:
+        raise DbError(f"field_profiles read failed: {r.status_code} {r.text[:200]}")
+    rows = r.json()
+    return rows[0] if rows else None
+
+
+def get_profile_by_id(field_id: str) -> dict[str, Any] | None:
+    r = httpx.get(_url("field_profiles"), params={"id": f"eq.{field_id}", "select": "*"},
                   headers=_headers(), timeout=20)
     if r.status_code >= 400:
         raise DbError(f"field_profiles read failed: {r.status_code} {r.text[:200]}")
@@ -52,8 +63,8 @@ def get_analysis(analysis_id: str) -> dict[str, Any] | None:
     return rows[0] if rows else None
 
 
-def get_field_layers(user_id: str) -> dict[str, Any] | None:
-    r = httpx.get(_url("field_layers"), params={"user_id": f"eq.{user_id}", "select": "*"},
+def get_field_layers(field_id: str) -> dict[str, Any] | None:
+    r = httpx.get(_url("field_layers"), params={"field_id": f"eq.{field_id}", "select": "*"},
                   headers=_headers(), timeout=20)
     if r.status_code >= 400:
         raise DbError(f"field_layers read failed: {r.status_code} {r.text[:200]}")
@@ -62,8 +73,8 @@ def get_field_layers(user_id: str) -> dict[str, Any] | None:
 
 
 def upsert_field_layers(row: dict[str, Any]) -> None:
-    """Insert or replace the user's satellite-layer row (one per user, keyed by user_id)."""
-    r = httpx.post(_url("field_layers"), params={"on_conflict": "user_id"}, json=row,
+    """Insert or replace a field's satellite-layer row (one per field, keyed by field_id)."""
+    r = httpx.post(_url("field_layers"), params={"on_conflict": "field_id"}, json=row,
                    headers=_headers({"Prefer": "resolution=merge-duplicates,return=minimal"}), timeout=30)
     if r.status_code >= 400:
         raise DbError(f"field_layers write failed: {r.status_code} {r.text[:200]}")

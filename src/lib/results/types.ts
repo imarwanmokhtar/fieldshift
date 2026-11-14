@@ -88,4 +88,5 @@ export interface AnalysisRow {
   error: string | null;
   created_at: string;
   updated_at?: string;
+  field_id?: string | null;
 }

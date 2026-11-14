@@ -113,48 +113,52 @@ def test_one_bad_layer_does_not_drop_the_others():
 @pytest.fixture
 def fake_db(monkeypatch):
     store: dict = {}
-    monkeypatch.setattr(fl.db, "get_field_layers", lambda uid: store.get(uid))
-    monkeypatch.setattr(fl.db, "upsert_field_layers", lambda row: store.__setitem__(row["user_id"], {**store.get(row["user_id"], {}), **row}))
+    monkeypatch.setattr(fl.db, "get_field_layers", lambda fid: store.get(fid))
+    monkeypatch.setattr(fl.db, "upsert_field_layers", lambda row: store.__setitem__(row["field_id"], {**store.get(row["field_id"], {}), **row}))
     monkeypatch.setattr(fl.appeears, "configured", lambda: True)
     return store
 
 
-def test_prefetch_submits_three_groups_once(fake_db, monkeypatch):
+def test_prefetch_submits_only_smap_once_per_field(fake_db, monkeypatch):
     calls = []
     monkeypatch.setattr(fl.appeears, "submit_point_task",
                         lambda name, lat, lng, start, end, layers: calls.append((name, start, end, layers)) or f"t-{name}")
-    row = fl.prefetch("u1", 31.04, 31.38, today=date(2026, 11, 14))
-    assert row["status"] == "submitted" and set(row["tasks"]) == {"recent", "history", "static"}
-    by = {c[0]: c for c in calls}
-    assert by["fieldshift-recent"][1] == date(2024, 1, 1)
-    assert ("HLSL30.020", "Fmask") in by["fieldshift-recent"][3]
-    assert by["fieldshift-history"][1] == date(2015, 1, 1)
-    fl.prefetch("u1", 31.04, 31.38)                          # same pin: no new requests
-    assert len(calls) == 3
+    row = fl.prefetch("f1", "u1", 31.04, 31.38, today=date(2026, 11, 14))
+    assert row["status"] == "submitted" and set(row["tasks"]) == {"smap"}
+    assert row["field_id"] == "f1" and row["user_id"] == "u1"
+    name, start, _, layers = calls[0]
+    assert name == "fieldshift-smap" and start == date(2015, 4, 1)   # full SMAP L4 record
+    assert {p for p, _ in layers} == {fl.SMAP}                  # every other dataset is switched off
+    fl.prefetch("f1", "u1", 31.04, 31.38)                       # same field and pin: no new request
+    assert len(calls) == 1
+    fl.prefetch("f2", "u1", 30.5, 31.0)                         # a second field gets its own request
+    assert len(calls) == 2 and set(fake_db) == {"f1", "f2"}
 
 
 def test_collect_processes_finished_tasks_and_keeps_waiting_on_others(fake_db, monkeypatch):
-    fake_db["u1"] = {"user_id": "u1", "lat": 31.04, "lng": 31.38, "status": "submitted", "features": {},
-                     "tasks": {"static": {"task_id": "s", "status": "submitted"},
-                               "recent": {"task_id": "r", "status": "submitted"}}}
+    fake_db["f1"] = {"field_id": "f1", "user_id": "u1", "lat": 31.04, "lng": 31.38, "status": "submitted", "features": {},
+                     "tasks": {"smap": {"task_id": "s", "status": "submitted"},
+                               "static": {"task_id": "x", "status": "submitted"}}}
+    dates = _days("2024-01-01", 120, 1)
+    smap_csv = synthetic_csv("SPL4SMGP.008", {"Geophysical_Data_sm_rootzone": [0.3] * 120,
+                                              "Geophysical_Data_sm_rootzone_pctl": [15.0] * 120}, dates)
     monkeypatch.setattr(fl.appeears, "task_status", lambda tid: "done" if tid == "s" else "processing")
-    monkeypatch.setattr(fl.appeears, "download_csvs",
-                        lambda tid: {"dem.csv": synthetic_csv("SRTMGL1_NC.003", {"SRTMGL1_DEM": [6]}, ["2000-02-11"])})
-    feats, state, sources = fl.for_analysis("u1", 31.04, 31.38)
-    assert feats == {"elevation_m": 6.0} and state == "partial"
-    assert [s["id"] for s in sources] == ["srtm"]
-    assert fake_db["u1"]["tasks"]["recent"]["status"] == "processing"
+    monkeypatch.setattr(fl.appeears, "download_csvs", lambda tid: {"smap.csv": smap_csv})
+    feats, state, sources = fl.for_analysis("f1", "u1", 31.04, 31.38)
+    assert feats["smap"]["rootzone_pctl_last90"] == 15.0 and state == "partial"
+    assert [s["id"] for s in sources] == ["smap"]
+    assert fake_db["f1"]["tasks"]["static"]["status"] == "processing"
 
 
 def test_for_analysis_without_login_is_unavailable(monkeypatch):
     monkeypatch.setattr(fl.appeears, "configured", lambda: False)
-    assert fl.for_analysis("u1", 31.0, 31.0) == (None, "unavailable", [])
+    assert fl.for_analysis("f1", "u1", 31.0, 31.0) == (None, "unavailable", [])
 
 
 def test_new_pin_requests_layers(fake_db, monkeypatch):
-    fake_db["u1"] = {"user_id": "u1", "lat": 30.0, "lng": 30.0, "status": "done", "features": {"elevation_m": 1}}
+    fake_db["f1"] = {"field_id": "f1", "user_id": "u1", "lat": 30.0, "lng": 30.0, "status": "done", "features": {"smap": {}}}
     monkeypatch.setattr(fl.appeears, "submit_point_task", lambda *a: "t")
-    feats, state, _ = fl.for_analysis("u1", 31.04, 31.38)
+    feats, state, _ = fl.for_analysis("f1", "u1", 31.04, 31.38)
     assert feats is None and state == "requested"
 
 
@@ -179,28 +183,30 @@ def test_expired_token_logs_in_again(monkeypatch):
 # ---------------------------------------------------------------- full analysis
 
 def _layers_features():
-    dates = pd.date_range("2023-11-01", periods=100, freq="10D")
-    ndvi = (0.45 + 0.3 * np.sin(np.arange(100) / 6)).round(3)
-    return {"ndvi_hls": {"dates": [d.strftime("%Y-%m-%d") for d in dates], "values": [float(v) for v in ndvi],
-                         "interpolated": [False] * 100},
-            "et_modis": {"annual_mm": {2023: 900}, "years": [2016, 2024], "mean_annual_mm": 900,
-                         "mean_winter_mm": 400, "mean_summer_mm": 500},
-            "smap": {"rootzone_pctl_last90": 12, "rootzone_mean_m3m3": 0.31},
+    # Includes switched-off layers on purpose: the analysis must ignore everything but SMAP.
+    return {"smap": {"rootzone_pctl_last90": 12, "rootzone_mean_m3m3": 0.31},
+            "et_modis": {"annual_mm": {2023: 900}, "years": [2016, 2024], "mean_annual_mm": 900},
             "elevation_m": 7}
 
 
-def test_analysis_uses_satellite_layers():
+def test_analysis_uses_only_power_and_smap():
     from tests.test_engine import ANSWERS
     from app.pipeline import analyze_answers
-    pack, _ = analyze_answers(ANSWERS, "en", layers=(_layers_features(), "ready", [{"id": "hls_ndvi"}]))
-    used = pack.data_quality.layers_used
-    assert {"hls_ndvi", "modis_et", "smap", "srtm"} <= set(used)
+    pack, _ = analyze_answers(ANSWERS, "en", layers=(_layers_features(), "ready", [{"id": "smap"}]))
+    assert pack.data_quality.layers_used == ["nasa_power", "smap"]
+    assert pack.data_quality.layers_unavailable == []
     codes = [n.code for n in pack.data_quality.notes]
-    assert "smap_dry" in codes and "elevation" in codes
+    assert "smap_dry" in codes
     cur = next(s for s in pack.strategies if s.kind == "current")
-    assert any(f.code == "et_check_modis" for f in cur.evidence)
-    assert pack.observations["satellite"]["et_check"]["modis_mm_per_year"] == 900
-    assert pack.observations["satellite"]["elevation_m"] == 7
+    assert all(g.code != "ndvi_unavailable" for g in cur.gaps)
+
+
+def test_analysis_without_smap_lists_it_unavailable():
+    from tests.test_engine import ANSWERS
+    from app.pipeline import analyze_answers
+    pack, _ = analyze_answers(ANSWERS, "en", layers=(None, "unavailable", []))
+    assert pack.data_quality.layers_used == ["nasa_power"]
+    assert pack.data_quality.layers_unavailable == ["smap"]
 
 
 def test_analysis_notes_pending_layers():
@@ -209,3 +215,25 @@ def test_analysis_notes_pending_layers():
     pack, _ = analyze_answers(ANSWERS, "en", layers=(None, "requested", []))
     cur = next(s for s in pack.strategies if s.kind == "current")
     assert any(g.code == "layers_pending" for g in cur.gaps)
+
+
+def test_smap_compares_last_90_days_with_past_years_when_percentile_is_empty():
+    # Like the first live AppEEARS download: the percentile layer is all -9999.
+    idx = pd.date_range("2015-04-01", "2025-11-10", freq="D")
+    sm = np.where(idx >= pd.Timestamp("2025-08-13"), 0.10, 0.20)   # last 90 days much drier
+    csv = synthetic_csv("SPL4SMGP.008", {"Geophysical_Data_sm_rootzone": sm,
+                                         "Geophysical_Data_sm_rootzone_pctl": [-9999.0] * len(idx)},
+                        [d.strftime("%Y-%m-%d") for d in idx])
+    smap = fl.process_smap({"s": csv})["smap"]
+    assert "rootzone_pctl_last90" not in smap
+    assert smap["n_years"] == 10 and smap["years_drier_than_now"] == 0
+    assert smap["anomaly_m3m3"] == -0.1
+
+
+def test_smap_years_fact_in_analysis():
+    from tests.test_engine import ANSWERS
+    from app.pipeline import analyze_answers
+    feats = {"smap": {"rootzone_mean_m3m3": 0.2, "n_years": 10, "years_drier_than_now": 0, "anomaly_m3m3": -0.1}}
+    pack, _ = analyze_answers(ANSWERS, "en", layers=(feats, "ready", []))
+    note = next(n for n in pack.data_quality.notes if n.code == "smap_dry_years")
+    assert "10 of the last 10 years" in note.text

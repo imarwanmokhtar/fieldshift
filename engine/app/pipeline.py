@@ -7,12 +7,9 @@ from typing import Any, Callable
 
 from . import db
 from .data import field_layers
-from .data import ndvi as ndvi_client
-from .data.ndvi import NdviSeries
-from .data import raster
 from .data.power import apply_scenario, load_climate
 from .evidence import build_pack
-from .features import CROPS, climate_features, ndvi_features
+from .features import climate_features
 from .llm import narrate
 from .profile import ProfileError, parse_profile
 from .settings import settings
@@ -37,16 +34,9 @@ def _report(on_stage: Callable[[str], None] | None, stage: str) -> None:
         log.warning("could not report stage %s", stage, exc_info=True)
 
 
-def _ndvi_from_layers(feats: dict[str, Any] | None) -> NdviSeries | None:
-    """Field NDVI from NASA AppEEARS: HLS 30 m first, MODIS 250 m as the backup."""
-    import pandas as pd
-    for key, source in (("ndvi_hls", "hls"), ("ndvi_modis", "modis")):
-        s = (feats or {}).get(key)
-        if s and len(s.get("values", [])) >= 10:
-            idx = pd.to_datetime(s["dates"])
-            return NdviSeries(series=pd.Series(s["values"], index=idx, dtype=float),
-                              interpolated=pd.Series(s["interpolated"], index=idx, dtype=bool), source=source)
-    return None
+# Datasets the engine uses. The other layers (HLS/MODIS/ECOSTRESS NDVI and water use,
+# SRTM, GAEZ, IMERG) are switched off: their code is kept in data/ for later.
+ACTIVE_DATASETS = ("nasa_power", "smap")
 
 
 def _gather(profile, scenario: dict[str, float], on_stage: Callable[[str], None] | None = None,
@@ -55,43 +45,17 @@ def _gather(profile, scenario: dict[str, float], on_stage: Callable[[str], None]
     climate = load_climate(profile.lat, profile.lng)
     _report(on_stage, "computing_climate")
     df = apply_scenario(climate.df, scenario.get("temp_delta_c", 0.0), scenario.get("rain_factor", 1.0))
-    clim = climate_features(df, profile.lat, (layers or {}).get("elevation_m"))
+    clim = climate_features(df, profile.lat)
 
     used, mocked, unavailable = [], [], []
     _report(on_stage, "satellite_layers")
     (used if climate.source == "nasa_power" else unavailable).append("nasa_power")
-
-    nd = _ndvi_from_layers(layers)
-    if nd is not None:
-        used.append(f"{nd.source}_ndvi")
+    if (layers or {}).get("smap"):
+        used.append("smap")                                # NASA SMAP L4 through AppEEARS
     else:
-        nd = ndvi_client.fetch_ndvi(profile.lat, profile.lng)
-        if nd is None:
-            unavailable.append("satellite_ndvi")
-        elif nd.source == "mock":
-            mocked.append("sentinel2_ndvi")
-        else:
-            used.append("sentinel2_ndvi")
-    nfeat = ndvi_features(nd) if nd is not None else None
-    for key, name in (("et_modis", "modis_et"), ("et_ecostress", "ecostress_et"), ("smap", "smap"), ("elevation_m", "srtm")):
-        if (layers or {}).get(key) is not None:
-            used.append(name)
-
-    gaez = {}
-    for cid in CROPS:
-        v = raster.gaez_suitability(cid, profile.lat, profile.lng)
-        if v is not None:
-            gaez[cid] = v
-    if gaez:
-        used.append("gaez")
-    else:
-        unavailable.append("gaez (using approximate values from crops.json)")
-
-    for name, fn in (("smap", raster.smap_anomaly), ("imerg", raster.imerg_trend)):
-        if name == "smap" and "smap" in used:
-            continue                                      # SMAP already came from AppEEARS
-        _, src = fn(profile.lat, profile.lng)
-        {"mock": mocked, "unavailable": unavailable}.get(src, used).append(name)
+        unavailable.append("smap")
+    nfeat = None                                           # NDVI layers are switched off
+    gaez: dict[str, float] = {}                            # crop suitability comes from crops.json
     return climate, clim, nfeat, gaez, used, mocked, unavailable
 
 
@@ -147,9 +111,12 @@ def run_analysis(analysis_id: str, user_id: str, lang: str | None = None) -> Non
         lang = lang or row.get("lang") or "ar"
         db.update_analysis(analysis_id, status="running", stage="reading_profile", error=None)
 
-        profile_row = db.get_profile(user_id)
+        # Each analysis belongs to one field; older rows without a field use the user's latest field.
+        field_id = row.get("field_id")
+        profile_row = db.get_profile_by_id(field_id) if field_id else db.get_profile(user_id)
         if not profile_row or profile_row.get("user_id") != user_id:
             raise ProfileError("Farm setup not found. Please finish the onboarding questions.")
+        field_id = profile_row["id"]
 
         scenario = row.get("scenario") or None
         answers = profile_row.get("answers") or {}
@@ -157,7 +124,7 @@ def run_analysis(analysis_id: str, user_id: str, lang: str | None = None) -> Non
         try:
             p = parse_profile(answers)
             _report(lambda st: db.update_analysis(analysis_id, stage=st), "collecting_satellite")
-            layers = field_layers.for_analysis(user_id, p.lat, p.lng, budget_s=settings.LAYERS_BUDGET_S)
+            layers = field_layers.for_analysis(field_id, user_id, p.lat, p.lng, budget_s=settings.LAYERS_BUDGET_S)
         except ProfileError:
             pass                                          # analyze_answers raises the same error with a clear message
         pack, narrative = analyze_answers(answers, lang, scenario, layers=layers,

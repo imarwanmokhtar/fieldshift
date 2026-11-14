@@ -31,30 +31,42 @@ export function useOnboarding(
     });
 
     const isMountedRef = useRef(true);
+    // One row per field. A new field gets its id on the first save.
+    const fieldIdRef = useRef<string | null>(initialProfile?.id ?? null);
+    const [fieldId, setFieldId] = useState<string | null>(initialProfile?.id ?? null);
+    // Editing a finished field: keep the saved answers until the farmer presses Finish.
+    const editingCompleted = initialProfile?.status === "completed";
 
-    // Save immediately (used for Finish button)
-    const saveNow = useCallback(async () => {
-        setState((prev) => ({ ...prev, isSaving: true }));
-
-        try {
+    const writeProfile = useCallback(
+        async (status: "in_progress" | "completed"): Promise<string> => {
+            const row = { answers: state.answers, current_step: state.currentStep, status };
+            if (fieldIdRef.current) {
+                const { error } = await supabase.from("field_profiles").update(row).eq("id", fieldIdRef.current);
+                if (error) throw error;
+                return fieldIdRef.current;
+            }
             const {
                 data: { user },
             } = await supabase.auth.getUser();
             if (!user) throw new Error("Not authenticated");
-
-            const { error } = await supabase.from("field_profiles").upsert(
-                {
-                    user_id: user.id,
-                    answers: state.answers,
-                    current_step: state.currentStep,
-                    status: "completed",
-                    updated_at: new Date().toISOString(),
-                },
-                { onConflict: "user_id" }
-            );
-
+            const { data, error } = await supabase
+                .from("field_profiles")
+                .insert({ ...row, user_id: user.id })
+                .select("id")
+                .single();
             if (error) throw error;
+            fieldIdRef.current = data.id as string;
+            setFieldId(fieldIdRef.current);
+            return fieldIdRef.current;
+        },
+        [supabase, state.answers, state.currentStep]
+    );
 
+    // Save immediately as completed (Finish button). Returns the field id, or null on error.
+    const saveNow = useCallback(async (): Promise<string | null> => {
+        setState((prev) => ({ ...prev, isSaving: true }));
+        try {
+            const id = await writeProfile("completed");
             setState((prev) => ({
                 ...prev,
                 isSaving: false,
@@ -62,14 +74,29 @@ export function useOnboarding(
                 lastSaved: Date.now(),
                 error: null,
             }));
+            return id;
         } catch (err) {
             setState((prev) => ({
                 ...prev,
                 isSaving: false,
                 error: err instanceof Error ? err.message : "Failed to save",
             }));
+            return null;
         }
-    }, [supabase, state.answers, state.currentStep]);
+    }, [writeProfile]);
+
+    // Save progress so the field exists (it needs an id for the satellite request).
+    // A finished field being edited is not touched until Finish.
+    const saveProgress = useCallback(async (): Promise<string | null> => {
+        if (editingCompleted) return fieldIdRef.current;
+        try {
+            const id = await writeProfile("in_progress");
+            setState((prev) => ({ ...prev, lastSaved: Date.now() }));
+            return id;
+        } catch {
+            return fieldIdRef.current;
+        }
+    }, [editingCompleted, writeProfile]);
 
     // Update a single answer
     const updateAnswer = useCallback((id: string, value: AnswerValue) => {
@@ -105,9 +132,7 @@ export function useOnboarding(
         });
     }, []);
 
-    const finish = useCallback(async () => {
-        await saveNow();
-    }, [saveNow]);
+    const finish = useCallback(async () => saveNow(), [saveNow]);
 
     // Cleanup
     useEffect(() => {
@@ -136,7 +161,9 @@ export function useOnboarding(
         goToStep,
         updateAnswer,
         saveNow,
+        saveProgress,
         finish,
+        fieldId,
         isFirstStep: state.currentStep === 0,
         isLastStep: state.currentStep >= TOTAL_QUESTIONS - 1,
         currentQuestion: currentQuestion!,

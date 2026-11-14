@@ -61,15 +61,10 @@ const en = {
     title: "Data behind it",
     note: "Satellite data is coarse in places and does not replace ground measurements. Each result states its uncertainty.",
     explain:
-      "NDVI measures how green and dense vegetation is. Evapotranspiration is the water a crop loses to the air — a direct input for irrigation planning.",
+      "From NASA POWER's daily weather we calculate how much water each crop loses to the air (evapotranspiration, FAO-56 method) and how many hot days hit it at its most sensitive stage.",
     sources: [
-      { name: "Landsat, MODIS/VIIRS, Sentinel-2", body: "Crop vigor (NDVI), bare-field periods, seasonal change." },
-      { name: "NASA POWER and ERA5", body: "Temperature, radiation, humidity, frost and heat risk, water demand." },
-      { name: "GPM / IMERG", body: "Rainfall and extreme-storm patterns." },
-      { name: "SMAP", body: "Soil moisture trends." },
-      { name: "ECOSTRESS", body: "Land-surface temperature and evapotranspiration." },
-      { name: "GRACE / GRACE-FO", body: "Long-term water storage trends." },
-      { name: "FAO GAEZ", body: "Crop suitability by climate and soil." },
+      { name: "NASA POWER", body: "Daily temperature, rainfall, solar radiation, humidity and wind at your field since 2015: heat risk and crop water demand." },
+      { name: "NASA SMAP", body: "Root-zone soil moisture around your field: whether the soil has been drier or wetter than usual lately." },
     ],
   },
   principles: {
@@ -184,15 +179,10 @@ const ar: Dictionary = {
     title: "البيانات خلفه",
     note: "بيانات الأقمار الصناعية تقريبية في بعض الأماكن ولا تُغني عن القياسات الأرضية. كل نتيجة توضح درجة عدم اليقين فيها.",
     explain:
-      "يقيس NDVI مدى خضرة الغطاء النباتي وكثافته. والنتح هو الماء الذي يفقده المحصول إلى الهواء — مدخل مباشر لتخطيط الري.",
+      "من بيانات الطقس اليومية في NASA POWER نحسب كمية المياه التي يفقدها كل محصول إلى الهواء (النتح، بطريقة الفاو FAO-56) وعدد الأيام الحارة في أكثر مراحله حساسية.",
     sources: [
-      { name: "Landsat · MODIS/VIIRS · Sentinel-2", body: "نشاط المحصول (NDVI)، فترات بقاء الحقل جرداءً، والتغيّر الموسمي." },
-      { name: "NASA POWER وERA5", body: "الحرارة، الإشعاع الشمسي، الرطوبة، خطر الصقيع والحرارة الشديدة، والاحتياج المائي." },
-      { name: "GPM / IMERG", body: "أنماط الأمطار والعواصف الشديدة." },
-      { name: "SMAP", body: "اتجاهات رطوبة التربة." },
-      { name: "ECOSTRESS", body: "حرارة سطح الأرض والنتح." },
-      { name: "GRACE / GRACE-FO", body: "اتجاهات مخزون المياه على المدى الطويل." },
-      { name: "FAO GAEZ", body: "مدى ملاءمة المحاصيل حسب المناخ والتربة." },
+      { name: "NASA POWER", body: "الحرارة والأمطار والإشعاع الشمسي والرطوبة والرياح يومياً عند حقلك منذ 2015: خطر الحرارة واحتياج المحاصيل للمياه." },
+      { name: "NASA SMAP", body: "رطوبة التربة في منطقة الجذور حول حقلك: هل كانت التربة أجف أو أرطب من المعتاد مؤخراً." },
     ],
   },
   principles: {

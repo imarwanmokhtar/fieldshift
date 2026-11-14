@@ -11,10 +11,12 @@ import { startAnalysis } from "./start-analysis";
 export function RunAnalysisButton({
   locale,
   label,
+  fieldId,
   variant = "dark",
 }: {
   locale: Locale;
   label: string;
+  fieldId?: string;
   variant?: "primary" | "dark" | "paper";
 }) {
   const router = useRouter();
@@ -24,7 +26,7 @@ export function RunAnalysisButton({
   async function run() {
     setBusy(true);
     try {
-      const id = await startAnalysis(locale);
+      const id = await startAnalysis(locale, fieldId);
       router.push(`/${locale}/dashboard/results/${id}`);
     } catch (err) {
       toast.error(`${t.startError} (${err instanceof Error ? err.message : "unknown"})`);

@@ -20,14 +20,14 @@ export function OnboardingClient({ locale, initialProfile }: OnboardingClientPro
     <OnboardingWizard
       locale={locale}
       initialProfile={initialProfile}
-      onComplete={async () => {
-        // Answers are saved: start the analysis and go straight to the results page.
+      onComplete={async (fieldId) => {
+        // Answers are saved: start the analysis of this field and go straight to the results page.
         try {
-          const id = await startAnalysis(locale);
+          const id = await startAnalysis(locale, fieldId);
           router.push(`/${locale}/dashboard/results/${id}`);
         } catch (err) {
           toast.error(`${getResultsStrings(locale).startError} (${err instanceof Error ? err.message : "unknown"})`);
-          router.push(`/${locale}/dashboard`);
+          router.push(`/${locale}/dashboard?field=${fieldId}`);
         }
         router.refresh();
       }}

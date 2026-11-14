@@ -20,9 +20,7 @@ def confidence_for(st: Strategy, profile: FarmProfile, climate_source: str, ndvi
         score -= 5 if q in KEY_ANSWERS else 2
     if climate_source != "nasa_power":
         score -= 25
-    if ndvi is None:
-        score -= 5
-    elif ndvi.interpolated_share > 0.3:
+    if ndvi is not None and ndvi.interpolated_share > 0.3:
         score -= 5
     score -= 5 * len(mocked)
     score -= 10                                      # crop table not yet verified locally
@@ -80,9 +78,20 @@ def satellite_facts(ctx: Context, layers: dict) -> dict:
 
     smap = feats.get("smap") or {}
     pct = smap.get("rootzone_pctl_last90")
-    if pct is not None:
+    n_years = smap.get("n_years") or 0
+    if pct is not None:                                   # NASA's own SMAP L4 percentile
         code = "smap_dry" if pct < 20 else "smap_wet" if pct > 80 else "smap_normal"
         notes.append(fact(code, pct=int(pct)))
+    elif n_years >= 3 and smap.get("years_drier_than_now") is not None:
+        drier = int(smap["years_drier_than_now"])         # earlier years that were drier than now
+        share = drier / n_years
+        if share <= 0.2:
+            notes.append(fact("smap_dry_years", k=n_years - drier, n=n_years))
+        elif share >= 0.8:
+            notes.append(fact("smap_wet_years", k=drier, n=n_years))
+        else:
+            notes.append(fact("smap_normal_years", n=n_years))
+    if smap:
         obs["smap"] = smap
 
     if feats.get("elevation_m") is not None:
@@ -132,9 +141,7 @@ def build_pack(ctx: Context, climate: ClimateData, clim: ClimateFeatures, strate
         shared_gaps.append(fact("no_soil_test"))
     if climate.source != "nasa_power":
         shared_gaps.append(fact("climate_fallback"))
-    if ndvi is None:
-        shared_gaps.append(fact("ndvi_unavailable"))
-    else:
+    if ndvi is not None:
         if p.last_crop and p.last_crop.crop not in ("fallow",):
             season = p.last_crop.season
             seen = ndvi.winter_peak_last_season if season == "winter" else ndvi.summer_peak_last_season if season == "summer" else None
