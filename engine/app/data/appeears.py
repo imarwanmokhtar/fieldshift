@@ -82,14 +82,21 @@ def _mdy(d: date) -> str:
     return d.strftime("%m-%d-%Y")
 
 
+def recurring_window(month_day_start: str, month_day_end: str, first_year: int, last_year: int) -> dict:
+    """A date range repeated every year (AppEEARS 'recurring' dates use MM-DD plus a year range)."""
+    return {"startDate": month_day_start, "endDate": month_day_end, "recurring": True,
+            "yearRange": [first_year, last_year]}
+
+
 def submit_point_task(name: str, lat: float, lng: float, start: date, end: date,
-                      layers: list[tuple[str, str]]) -> str:
-    """Submit one point request. `layers` = [(product_id, layer_name), ...]. Returns the task id."""
+                      layers: list[tuple[str, str]], dates: list[dict] | None = None) -> str:
+    """Submit one point request. `layers` = [(product_id, layer_name), ...]; `dates` overrides
+    the single start-end range (e.g. recurring windows). Returns the task id."""
     body = {
         "task_type": "point",
         "task_name": name,
         "params": {
-            "dates": [{"startDate": _mdy(start), "endDate": _mdy(end)}],
+            "dates": dates or [{"startDate": _mdy(start), "endDate": _mdy(end)}],
             "layers": [{"product": p, "layer": layer} for p, layer in layers],
             "coordinates": [{"latitude": round(lat, 5), "longitude": round(lng, 5), "id": "field", "category": "field"}],
         },

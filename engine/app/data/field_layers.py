@@ -6,10 +6,12 @@ start of an analysis). Only small processed summaries are stored (`field_layers`
 table); the analysis never waits on NASA for more than a short time budget.
 
 ACTIVE dataset (product id as listed by AppEEARS):
-  smap (2015-04 -> now): SMAP L4 root-zone soil moisture SPL4SMGP (9 km, 3-hourly).
-  The full record is requested so the last 90 days can be compared with the same
-  90 days of every earlier year (the L4 percentile layer comes back empty from
-  AppEEARS at some points, e.g. all -9999 near Giza in the first live test).
+  smap: SMAP L3 enhanced daily surface soil moisture SPL3SMP_E (9 km, top ~5 cm, AM + PM passes),
+  for the last 90 days AND the same 90 days of every year since 2015 (recurring windows), so the
+  recent soil moisture can be compared with earlier years at the same time of year.
+  Why not SMAP L4 (SPL4SMGP, root zone, 3-hourly)? Its full record is tens of thousands of files
+  per point; AppEEARS processes one request per account at a time and these sat for hours (first
+  live test). Its percentile layer also came back empty (-9999). The L4 code is kept, inactive.
 The processing code for HLS NDVI, MODIS NDVI/ET, ECOSTRESS ET and SRTM elevation is
 kept below but switched off (not requested): see INACTIVE_GROUPS to turn one back on.
 Missing values are dropped, never filled. One row per FIELD (a user can have several).
@@ -35,7 +37,8 @@ HLS_L30, HLS_S30 = "HLSL30.020", "HLSS30.020"
 MOD13 = "MOD13Q1.061"
 MOD16 = "MOD16A2GF.061"
 ECO = "ECO_L3T_JET.002"
-SMAP = "SPL4SMGP.008"
+SMAP = "SPL4SMGP.008"          # L4 root zone, 3-hourly (inactive: too slow through AppEEARS)
+SMAP_L3 = "SPL3SMP_E.006"      # L3 enhanced, daily surface soil moisture (active)
 SRTM = "SRTMGL1_NC.003"
 
 W_M2_TO_MM_DAY = 0.0864 / 2.45          # 1 W/m2 of latent heat = 0.0353 mm/day of water
@@ -46,13 +49,38 @@ PIN_TOLERANCE_DEG = 1e-4                 # ~10 m: same field
 REFRESH_AFTER_DAYS = 30
 SMAP_START = date(2015, 4, 1)            # SMAP L4 record starts 31 March 2015
 SMAP_WINDOW_DAYS = 90
-SMAP_MIN_COVERAGE = 0.8                  # a past-year window counts only if >= 80% of its days have data
+SMAP_MIN_COVERAGE = 0.8                  # L4 (3-hourly, gap-free): a window counts if >= 80% of its days have data
+SMAP_MIN_OBS_L3 = 15                     # L3 (satellite passes every 2-3 days): a window counts with >= 15 readings
+SMAP_LATENCY_DAYS = 3                    # L3 daily files appear a couple of days after the overpass
+SMAP_QUALITY_MIN_OBS = 20                # below this many "recommended quality" readings, use all valid ones (flagged)
+
+
+def _md(d: date) -> str:
+    # Recurring windows use MM-DD; 29 February does not exist in most years, so avoid it.
+    if d.month == 2 and d.day == 29:
+        d = d.replace(day=28)
+    return d.strftime("%m-%d")
+
+
+def smap_windows(today: date) -> list[dict]:
+    """The last SMAP_WINDOW_DAYS days, repeated every year since 2015 (split at New Year if needed)."""
+    from datetime import timedelta
+    end = today - timedelta(days=SMAP_LATENCY_DAYS)
+    start = end - timedelta(days=SMAP_WINDOW_DAYS - 1)
+    first, last = SMAP_START.year, end.year
+    if start.year == end.year:
+        return [appeears.recurring_window(_md(start), _md(end), first, last)]
+    return [appeears.recurring_window(_md(start), "12-31", first, last - 1),
+            appeears.recurring_window("01-01", _md(end), first + 1, last)]
 
 
 def _groups(today: date) -> dict[str, dict[str, Any]]:
-    """The AppEEARS requests submitted for a field. Only SMAP is active."""
-    return {"smap": {"start": SMAP_START, "end": today, "layers": [
-        (SMAP, "Geophysical_Data_sm_rootzone"), (SMAP, "Geophysical_Data_sm_rootzone_pctl"),
+    """The AppEEARS requests submitted for a field. Only SMAP (daily L3) is active."""
+    return {"smap": {"start": SMAP_START, "end": today, "dates": smap_windows(today), "layers": [
+        (SMAP_L3, "Soil_Moisture_Retrieval_Data_AM_soil_moisture"),
+        (SMAP_L3, "Soil_Moisture_Retrieval_Data_AM_retrieval_qual_flag"),
+        (SMAP_L3, "Soil_Moisture_Retrieval_Data_PM_soil_moisture_pm"),
+        (SMAP_L3, "Soil_Moisture_Retrieval_Data_PM_retrieval_qual_flag_pm"),
     ]}}
 
 
@@ -78,7 +106,8 @@ SOURCES = {
     "modis_ndvi": {"dataset": "NASA MODIS Terra vegetation index", "products": [MOD13], "resolution": "250 m, 16-day"},
     "modis_et": {"dataset": "NASA MODIS Terra evapotranspiration (gap-filled)", "products": [MOD16], "resolution": "500 m, 8-day"},
     "ecostress_et": {"dataset": "NASA ECOSTRESS daily evapotranspiration", "products": [ECO], "resolution": "70 m, irregular overpasses"},
-    "smap": {"dataset": "NASA SMAP L4 root-zone soil moisture", "products": [SMAP], "resolution": "9 km, 3-hourly"},
+    "smap": {"dataset": "NASA SMAP L3 enhanced daily surface soil moisture (top ~5 cm)", "products": [SMAP_L3],
+             "resolution": "9 km, daily (a pass every 2-3 days)"},
     "srtm": {"dataset": "NASA SRTM elevation", "products": [SRTM], "resolution": "30 m"},
 }
 
@@ -194,7 +223,8 @@ def process_ecostress(csvs: dict[str, str]) -> dict[str, Any]:
     }}
 
 
-def smap_vs_past_years(daily: pd.Series, window_days: int = SMAP_WINDOW_DAYS) -> dict[str, Any]:
+def smap_vs_past_years(daily: pd.Series, window_days: int = SMAP_WINDOW_DAYS,
+                       min_obs: int | None = None) -> dict[str, Any]:
     """Compare the mean of the last `window_days` with the same calendar window of every
     earlier year that has enough data. Returns counts, never an invented percentile."""
     end = daily.index.max()
@@ -205,10 +235,11 @@ def smap_vs_past_years(daily: pd.Series, window_days: int = SMAP_WINDOW_DAYS) ->
         w = daily[(daily.index > e - pd.Timedelta(days=window_days)) & (daily.index <= e)]
         if e < daily.index.min():
             break
-        if len(w) >= SMAP_MIN_COVERAGE * window_days:
+        needed = min_obs if min_obs is not None else SMAP_MIN_COVERAGE * window_days
+        if len(w) >= needed:
             past.append(float(w.mean()))
     now = float(current.mean())
-    out: dict[str, Any] = {"rootzone_last90_m3m3": round(now, 3), "n_years": len(past)}
+    out: dict[str, Any] = {"sm_last90_m3m3": round(now, 3), "n_years": len(past)}
     if past:
         out["years_drier_than_now"] = int(sum(v < now for v in past))
         out["anomaly_m3m3"] = round(now - float(np.mean(past)), 3)
@@ -216,6 +247,37 @@ def smap_vs_past_years(daily: pd.Series, window_days: int = SMAP_WINDOW_DAYS) ->
 
 
 def process_smap(csvs: dict[str, str]) -> dict[str, Any]:
+    """SMAP L3 enhanced (daily, surface): AM and PM passes, recommended-quality readings only
+    (bit 0 of the retrieval quality flag == 0). Missing days stay missing."""
+    readings, valid_all = [], []
+    for sm_layer, qf_layer in (("Soil_Moisture_Retrieval_Data_AM_soil_moisture", "Soil_Moisture_Retrieval_Data_AM_retrieval_qual_flag"),
+                               ("Soil_Moisture_Retrieval_Data_PM_soil_moisture_pm", "Soil_Moisture_Retrieval_Data_PM_retrieval_qual_flag_pm")):
+        sm = _layer(csvs, SMAP_L3, sm_layer, fill=-9999.0, valid=(0.02, 0.5))
+        if sm.empty:
+            continue
+        valid_all.append(sm)
+        qf = _layer(csvs, SMAP_L3, qf_layer, fill=65534)
+        if len(qf):
+            good = qf[(qf.astype(int) & 1) == 0].index
+            sm = sm[sm.index.isin(good)]
+        readings.append(sm)
+    good_sm = pd.concat(readings) if readings else pd.Series(dtype=float)
+    relaxed = False
+    if len(good_sm) < SMAP_QUALITY_MIN_OBS and valid_all:
+        good_sm, relaxed = pd.concat(valid_all), True      # too few top-quality readings: use all valid ones
+    if good_sm.empty:
+        return {}
+    daily = good_sm.groupby(good_sm.index.normalize()).mean().sort_index()
+    out: dict[str, Any] = {"product": SMAP_L3, "depth": "0-5 cm", "n_obs": int(len(daily)),
+                           "sm_mean_m3m3": round(float(daily.mean()), 3),
+                           "first_date": str(daily.index.min().date()), "last_date": str(daily.index.max().date()),
+                           "quality_relaxed": relaxed}
+    out.update(smap_vs_past_years(daily, min_obs=SMAP_MIN_OBS_L3))
+    return {"smap": out}
+
+
+def process_smap_l4(csvs: dict[str, str]) -> dict[str, Any]:
+    """SMAP L4 root zone (3-hourly) processing. Inactive: kept for when L4 is requested again."""
     sm = _layer(csvs, SMAP, "Geophysical_Data_sm_rootzone", fill=-9999.0, valid=(0.0, 1.0))
     pct = _layer(csvs, SMAP, "Geophysical_Data_sm_rootzone_pctl", fill=-9999.0, valid=(0.0, 100.0))
     if sm.empty and pct.empty:
@@ -295,7 +357,8 @@ def prefetch(field_id: str, user_id: str, lat: float, lng: float, today: date | 
     tasks, errors = {}, []
     for name, g in _groups(today or date.today()).items():
         try:
-            tid = appeears.submit_point_task(f"fieldshift-{name}", lat, lng, g["start"], g["end"], g["layers"])
+            tid = appeears.submit_point_task(f"fieldshift-{name}", lat, lng, g["start"], g["end"], g["layers"],
+                                             dates=g.get("dates"))
             tasks[name] = {"task_id": tid, "status": "submitted", "submitted": _now()}
         except Exception as exc:
             log.warning("AppEEARS submit %s failed: %s", name, exc)

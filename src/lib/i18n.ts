@@ -64,7 +64,7 @@ const en = {
       "From NASA POWER's daily weather we calculate how much water each crop loses to the air (evapotranspiration, FAO-56 method) and how many hot days hit it at its most sensitive stage.",
     sources: [
       { name: "NASA POWER", body: "Daily temperature, rainfall, solar radiation, humidity and wind at your field since 2015: heat risk and crop water demand." },
-      { name: "NASA SMAP", body: "Root-zone soil moisture around your field: whether the soil has been drier or wetter than usual lately." },
+      { name: "NASA SMAP", body: "Daily satellite readings of top-soil moisture (0–5 cm) around your field: whether it has been drier or wetter than usual lately." },
     ],
   },
   principles: {
@@ -182,7 +182,7 @@ const ar: Dictionary = {
       "من بيانات الطقس اليومية في NASA POWER نحسب كمية المياه التي يفقدها كل محصول إلى الهواء (النتح، بطريقة الفاو FAO-56) وعدد الأيام الحارة في أكثر مراحله حساسية.",
     sources: [
       { name: "NASA POWER", body: "الحرارة والأمطار والإشعاع الشمسي والرطوبة والرياح يومياً عند حقلك منذ 2015: خطر الحرارة واحتياج المحاصيل للمياه." },
-      { name: "NASA SMAP", body: "رطوبة التربة في منطقة الجذور حول حقلك: هل كانت التربة أجف أو أرطب من المعتاد مؤخراً." },
+      { name: "NASA SMAP", body: "قراءات يومية من القمر الصناعي لرطوبة الطبقة السطحية من التربة (0–5 سم) حول حقلك: هل كانت أجف أو أرطب من المعتاد مؤخراً." },
     ],
   },
   principles: {

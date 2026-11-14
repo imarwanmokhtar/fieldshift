@@ -248,6 +248,57 @@ function Progress({
   );
 }
 
+/** The whole analysis as plain text, in the order it appears on the page (for "Copy analysis"). */
+function analysisAsText(row: AnalysisRow, locale: Locale, t: ResultsStrings): string {
+  const pack = row.result!;
+  const n = row.narrative!;
+  const texts = new Map(n.strategies.map((s) => [s.id, s]));
+  const lines: string[] = [t.pageTitle, "", n.overview, ""];
+  if (n.conclusion) {
+    lines.push(t.summaryTitle, n.conclusion.headline);
+    n.conclusion.steps.forEach((step, i) => lines.push(`${i + 1}. ${step}`));
+    lines.push(n.conclusion.check, "");
+  }
+  for (const s of pack.strategies) {
+    const tx = texts.get(s.id);
+    lines.push(`■ ${locale === "ar" ? s.name_ar : s.name} — ${t.overall}: ${s.scores.overall}/100`);
+    lines.push(s.slots.map((sl) => `${t.year} ${sl.year} ${t.seasons[sl.season]}: ${cropLabel(sl.crop, locale, t)}`).join(" | "));
+    if (tx) {
+      lines.push(tx.summary, `${t.sections.why}: ${tx.why}`);
+      for (const [title, items] of [
+        [t.sections.evidence, tx.evidence],
+        [t.sections.benefits, tx.benefits],
+        [t.sections.gaps, tx.gaps],
+        [t.sections.risks, tx.risks],
+      ] as const) {
+        if (items.length) lines.push(`${title}:`, ...items.map((x) => `- ${x}`));
+      }
+    }
+    lines.push("");
+  }
+  lines.push(n.reminder);
+  return lines.join("\n");
+}
+
+function CopyAnalysisButton({ row, locale, t }: { row: AnalysisRow; locale: Locale; t: ResultsStrings }) {
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(analysisAsText(row, locale, t));
+          toast.success(t.copied);
+        } catch {
+          toast.error(t.copyFailed);
+        }
+      }}
+      className="border-2 border-ink bg-paper px-3 py-1 font-bold hover:bg-ink hover:text-paper"
+    >
+      {t.copyAll}
+    </button>
+  );
+}
+
 function Results({
   row,
   locale,
@@ -276,6 +327,7 @@ function Results({
           {pack.observations.climate_source !== "nasa_power" && (
             <span className="border-2 border-ink bg-paper px-2 py-1 font-bold">{t.climateFallback}</span>
           )}
+          <CopyAnalysisButton row={row} locale={locale} t={t} />
           {narrative.source === "template" && (
             <span className="opacity-80">
               {t.templateNote}
