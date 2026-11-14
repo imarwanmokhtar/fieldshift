@@ -55,7 +55,9 @@ def _num(v: Any) -> float | None:
 def _crop(v: Any) -> CropSeason | None:
     if isinstance(v, dict) and isinstance(v.get("crop"), str) and v["crop"] not in ("", "unknown"):
         season = v.get("season") if v.get("season") in ("winter", "summer") else None
-        return CropSeason(crop=v["crop"], season=season)
+        typed = v.get("other")
+        name = typed.strip()[:40] if v["crop"] == "other" and isinstance(typed, str) and typed.strip() else None
+        return CropSeason(crop=v["crop"], season=season, name=name)
     if isinstance(v, str) and v not in ("", "unknown"):
         return CropSeason(crop=v)
     return None

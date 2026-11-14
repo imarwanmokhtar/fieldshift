@@ -6,11 +6,13 @@ import type { QuestionConfig } from "@/lib/onboarding/questions";
 import { OptionTile } from "./OptionTile";
 import { CROP_OPTIONS, SEASON_OPTIONS, getLocalizedOption } from "@/lib/onboarding/questions";
 
+type CropValue = { crop: string; season: string; other?: string };
+
 interface CropAndSeasonProps {
     question: QuestionConfig;
     locale: Locale;
-    value: { crop: string; season: string } | "unknown" | undefined;
-    onChange: (value: { crop: string; season: string } | "unknown") => void;
+    value: CropValue | "unknown" | undefined;
+    onChange: (value: CropValue | "unknown") => void;
     allowUnknown: boolean;
     error?: string;
 }
@@ -25,17 +27,20 @@ export function CropAndSeason({
 }: CropAndSeasonProps) {
     const currentCrop = value !== "unknown" && typeof value === "object" ? value.crop : "";
     const currentSeason = value !== "unknown" && typeof value === "object" ? value.season : "";
+    // Name typed by the farmer when the crop is not in the list ("Other").
+    const currentOther = value !== "unknown" && typeof value === "object" ? value.other ?? "" : "";
+    const otherInputId = `${question.id}-other-crop`;
 
     const handleCropChange = (crop: string) => {
         if (crop === "unknown") {
             onChange("unknown");
             return;
         }
-        onChange({ crop, season: currentSeason });
+        onChange(crop === "other" ? { crop, season: currentSeason, other: currentOther } : { crop, season: currentSeason });
     };
 
     const handleSeasonChange = (season: string) => {
-        onChange({ crop: currentCrop, season });
+        onChange(currentCrop === "other" ? { crop: currentCrop, season, other: currentOther } : { crop: currentCrop, season });
     };
 
     return (
@@ -59,6 +64,23 @@ export function CropAndSeason({
                         />
                     ))}
                 </div>
+                {currentCrop === "other" && (
+                    <div className="mt-3 space-y-1">
+                        <label htmlFor={otherInputId} className="block text-sm font-bold">
+                            {locale === "ar" ? "اكتب اسم المحصول" : "Type the crop name"}
+                        </label>
+                        <input
+                            id={otherInputId}
+                            type="text"
+                            autoFocus
+                            maxLength={40}
+                            value={currentOther}
+                            onChange={(e) => onChange({ crop: "other", season: currentSeason, other: e.target.value })}
+                            placeholder={locale === "ar" ? "مثلاً: فراولة" : "e.g. strawberry"}
+                            className="w-full border-[3px] border-ink bg-paper px-4 py-3 text-base shadow-brutal-xs outline-none focus-visible:outline-solid focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                        />
+                    </div>
+                )}
             </div>
 
             <div className="space-y-2">

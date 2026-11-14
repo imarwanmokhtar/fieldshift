@@ -101,7 +101,7 @@ def resolve_current(p: FarmProfile) -> tuple[tuple[str, str], list[Fact]]:
             if CROPS[cid]["season"] != season and cid != "other_vegetables":
                 season = CROPS[cid]["season"]
         else:
-            notes.append(fact("history_unsupported", crop=cid))
+            notes.append(fact("history_unsupported", crop=cs.name or cid))   # show the farmer's own crop name
             continue
         if season == "winter" and winter is None:
             winter = cid

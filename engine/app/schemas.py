@@ -20,6 +20,7 @@ FEDDAN_HA = 0.42  # 1 feddan = 4200 m2
 class CropSeason(BaseModel):
     crop: str
     season: Season | None = None
+    name: str | None = None      # typed by the farmer when crop == "other"
 
 
 class SoilTest(BaseModel):

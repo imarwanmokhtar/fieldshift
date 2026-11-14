@@ -46,8 +46,10 @@ important first). Build it ONLY from "plan_facts" and the strategies:
   how much water it may save); then a risk from plan_facts to check on the field; then the data that would make the
   comparison more accurate. Each step is tied to a plan fact and keeps its numbers.
 - "check": one sentence on what to verify locally. Do not repeat it inside "steps".
-Use "may"/"could"; never promise yields or profits; never give irrigation amounts or dates. In Arabic, write crop and
-practice names in Arabic only (no English words in brackets).
+Use "may"/"could"; never promise yields or profits; never give irrigation amounts or dates. Call the option "the closest
+to your priorities" ("الأقرب لأولوياتك"), never "the best" or "the most suitable". Never mention "plan_facts", fact
+numbers or any internal name: write directly to the farmer. In Arabic, use crop, practice and option names exactly as
+written in "plan_facts_ar" (no English words, no transliterations, no repeated names in brackets).
 Reply in the requested language (en = English, ar = simple Modern Standard Arabic that Egyptian farmers understand).
 Write numbers with Western digits (0-9), exactly as they appear in the DATA.
 Keep it short: at most 4 short items in each list, and one sentence per item.
@@ -75,6 +77,7 @@ def llm_view(pack: EvidencePack) -> dict[str, Any]:
         },
         "data_quality_notes": [n.text for n in pack.data_quality.notes],
         "plan_facts": [f.text for f in pack.plan],
+        "plan_facts_ar": [f.text_ar for f in pack.plan],
         "strategies": [{
             "id": s.id, "name": s.name, "sequence": s.sequence,
             **({"practices": [PRACTICES[p]["name_en"] for p in s.practices],

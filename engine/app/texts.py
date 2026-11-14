@@ -199,6 +199,8 @@ T: dict[str, dict[str, str]] = {
                   "ar": "ارتفاع الحقل من بيانات SRTM من ناسا: حوالي {m} م، واستُخدم في حساب احتياج المياه."},
     "note_climate_resolution": {"en": "Climate data covers an area of about 50 km, so it describes the local climate, not your exact field.",
                                 "ar": "بيانات المناخ تغطي مساحة حوالي 50 كم، لذا فهي تصف مناخ المنطقة وليس حقلك بالتحديد."},
+    "note_power_offline": {"en": "There was no internet connection, so a saved copy of real NASA POWER data for this area was used (downloaded {date}).",
+                           "ar": "لم يتوفر اتصال بالإنترنت، لذلك استُخدمت نسخة محفوظة من بيانات NASA POWER الحقيقية لهذه المنطقة (تم تنزيلها في {date})."},
     "note_fallback_heat": {"en": "Approximate averages smooth out heat waves, so heat risk may be underestimated.",
                            "ar": "المتوسطات التقريبية لا تُظهر موجات الحر، لذلك قد يكون خطر الحرارة أعلى مما يظهر."},
     "note_interpolated": {"en": "About {pct}% of the satellite record was filled in because of clouds.",

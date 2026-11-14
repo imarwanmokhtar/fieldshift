@@ -237,3 +237,28 @@ def test_smap_years_fact_in_analysis():
     pack, _ = analyze_answers(ANSWERS, "en", layers=(feats, "ready", []))
     note = next(n for n in pack.data_quality.notes if n.code == "smap_dry_years")
     assert "10 of the last 10 years" in note.text
+
+
+def test_offline_uses_saved_real_power_copy(monkeypatch, tmp_path):
+    """No internet + a saved NASA POWER file for the pin's grid cell -> real data, flagged as offline copy."""
+    import gzip
+    import json as _json
+    from app.data import power
+    days = pd.date_range("2020-01-01", "2021-12-31", freq="D")
+    raw = {c: {d.strftime("%Y%m%d"): 20.0 for d in days} for c in power.COLUMNS}
+    (tmp_path / "power").mkdir()
+    import shutil
+    shutil.copy(power.settings.DATA_DIR / "fallback_climatology_dakahlia.json", tmp_path)
+    # pin 31.40, 30.96 lies in the cell centred on 31.5, 31.25 (0.5 x 0.625 deg grid)
+    (tmp_path / "power" / "cell_31.500_31.250.json.gz").write_bytes(gzip.compress(_json.dumps(
+        {"meta": {"retrieved": "2026-11-14"}, "parameter": raw}).encode()))
+    monkeypatch.setattr(power, "settings", type("S", (), {"DATA_DIR": tmp_path, "POWER_START": "20200101",
+                                                          "POWER_END": "20211231"})())
+
+    def no_internet(*a, **k):
+        raise OSError("no internet")
+    monkeypatch.setattr(power, "fetch_power", no_internet)
+    c = power.load_climate(31.40, 30.96)
+    assert c.source == "nasa_power" and c.offline_copy == "2026-11-14" and len(c.df) == len(days)
+    c2 = power.load_climate(25.0, 33.0)                          # outside the saved cells
+    assert c2.source == "fallback_climatology" and c2.offline_copy is None

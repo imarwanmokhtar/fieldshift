@@ -94,12 +94,19 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
         goBack();
     }, [goBack]);
 
+    // Finish: save, then start the analysis and open the results. The summary stays on screen
+    // (button shows a spinner) until the next page loads, so the last question never flashes back.
+    const [finishing, setFinishing] = useState(false);
     const handleFinish = useCallback(async () => {
+        if (finishing) return;
+        setFinishing(true);
         const fieldId = await finish();
-        if (!fieldId) return;            // the save failed: the error is shown, stay on the summary
-        setShowSummary(false);
+        if (!fieldId) {                  // the save failed: the error is shown on the summary
+            setFinishing(false);
+            return;
+        }
         await onComplete(fieldId);
-    }, [finish, onComplete]);
+    }, [finish, finishing, onComplete]);
 
     const handleEdit = useCallback((questionId: string) => {
         const idx = ONBOARDING_QUESTIONS.findIndex((q) => q.id === questionId);
@@ -383,6 +390,8 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                         answers={answers}
                         onEdit={handleEdit}
                         onFinish={handleFinish}
+                        busy={finishing}
+                        error={error ?? undefined}
                     />
                 )}
             </div>

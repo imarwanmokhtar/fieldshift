@@ -16,6 +16,23 @@ interface SummaryScreenProps {
     answers: Record<string, unknown>;
     onEdit: (questionId: string) => void;
     onFinish: () => void;
+    /** Saving and starting the analysis: the button shows a spinner and is disabled. */
+    busy?: boolean;
+    error?: string;
+}
+
+function SpinningDots() {
+    return (
+        <span className="inline-flex items-center gap-1" aria-hidden>
+            {[0, 150, 300].map((delay) => (
+                <span
+                    key={delay}
+                    className="size-2 rounded-full bg-current animate-bounce motion-reduce:animate-none"
+                    style={{ animationDelay: `${delay}ms` }}
+                />
+            ))}
+        </span>
+    );
 }
 
 function formatAnswer(
@@ -53,7 +70,9 @@ function formatAnswer(
                 const v = value as any;
                 const cropOpt = question.options?.find((o) => o.value === v.crop);
                 const seasonOpt = question.options?.find((o) => o.value === v.season);
-                return `${cropOpt ? getLocalizedOption(cropOpt, locale) : v.crop} — ${seasonOpt ? getLocalizedOption(seasonOpt, locale) : v.season}`;
+                const typed = v.crop === "other" && typeof (v as { other?: unknown }).other === "string" ? ((v as { other?: string }).other ?? "").trim() : "";
+                const cropText = typed || (cropOpt ? getLocalizedOption(cropOpt, locale) : v.crop);
+                return `${cropText} — ${seasonOpt ? getLocalizedOption(seasonOpt, locale) : v.season}`;
             }
             return locale === "ar" ? "غير محدد" : "Not set";
 
@@ -114,6 +133,8 @@ export function SummaryScreen({
     answers,
     onEdit,
     onFinish,
+    busy = false,
+    error,
 }: SummaryScreenProps) {
     return (
         <div className="w-full max-w-3xl mx-auto space-y-8">
@@ -183,12 +204,28 @@ export function SummaryScreen({
             </section>
 
             <footer className="border-t-4 border-ink pt-6">
+                {error && (
+                    <p role="alert" className="mb-4 border-[3px] border-ink bg-paper p-3 font-bold text-red-700">
+                        {locale === "ar" ? "تعذر الحفظ: " : "Could not save: "}
+                        {error}
+                    </p>
+                )}
                 <BrutalButton
                     variant="dark"
                     onClick={onFinish}
+                    disabled={busy}
                     className="w-full"
                 >
-                    {locale === "ar" ? "حفظ والذهاب إلى لوحة التحكم" : "Save and go to dashboard"}
+                    {busy ? (
+                        <span className="inline-flex items-center gap-3" aria-live="polite">
+                            <SpinningDots />
+                            {locale === "ar" ? "جارٍ الحفظ…" : "Saving…"}
+                        </span>
+                    ) : locale === "ar" ? (
+                        "حفظ وتشغيل التحليل"
+                    ) : (
+                        "Save and run the analysis"
+                    )}
                 </BrutalButton>
             </footer>
         </div>

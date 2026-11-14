@@ -167,6 +167,8 @@ def build_pack(ctx: Context, climate: ClimateData, clim: ClimateFeatures, strate
     notes.extend(sat["notes"])
     if climate.source == "nasa_power":
         notes.append(fact("note_climate_resolution"))
+        if climate.offline_copy:
+            notes.append(fact("note_power_offline", date=climate.offline_copy))
     else:
         notes.append(fact("note_fallback_heat"))
     if ndvi is not None and ndvi.interpolated_share > 0:

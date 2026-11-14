@@ -92,7 +92,8 @@ export default async function DashboardPage({
       : null;
   const last = answers.last_crop as { crop?: string; season?: string } | undefined;
   const lastCropOpt = last?.crop ? CROP_OPTIONS.find((o) => o.value === last.crop) : undefined;
-  const lastCropText = lastCropOpt ? getLocalizedOption(lastCropOpt, locale) : null;
+  const typedCrop = last?.crop === "other" ? ((last as { other?: string }).other ?? "").trim() : "";
+  const lastCropText = typedCrop || (lastCropOpt ? getLocalizedOption(lastCropOpt, locale) : null);
   const priorities = Array.isArray(answers.priorities) ? (answers.priorities as string[]) : [];
   const topPriorityText = optionLabel("priorities", priorities[0], locale);
 

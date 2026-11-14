@@ -1,4 +1,5 @@
-"""Engine tests. They run fully offline: NASA POWER is forced to the bundled fallback climate."""
+"""Engine tests. They run fully offline: live NASA POWER is blocked, so the saved real NASA POWER
+copy for the test pin's grid cell (data/power/) is used, as it would be without internet."""
 
 from __future__ import annotations
 
@@ -111,8 +112,9 @@ def test_pipeline_builds_valid_pack_with_three_strategies():
     ids = [s.id for s in pack.strategies]
     assert ids[0] == "current" and len(ids) >= 3
     assert pack.recommended_id in ids
-    assert pack.observations["climate_source"] == "fallback_climatology"
-    assert "nasa_power" in pack.data_quality.layers_unavailable
+    assert pack.observations["climate_source"] == "nasa_power"            # saved real NASA copy, not estimates
+    assert "nasa_power" in pack.data_quality.layers_used
+    assert any(n.code == "note_power_offline" for n in pack.data_quality.notes)
     for s in pack.strategies:
         assert s.confidence in ("high", "medium", "low")
         assert s.evidence and s.gaps
@@ -422,3 +424,11 @@ def test_llm_must_return_conclusion(monkeypatch):
     monkeypatch.setattr(httpx, "post", fake_post)
     out = llm.narrate(pack, "en")
     assert out.source == "llm" and out.conclusion.steps == ["a", "b", "c"]   # first reply rejected, second accepted
+
+
+def test_typed_other_crop_name_is_shown_in_the_note():
+    answers = {**ANSWERS, "last_crop": {"crop": "other", "season": "winter", "other": "فراولة"}}
+    pack, _ = analyze_answers(answers, "ar")
+    cur = next(s for s in pack.strategies if s.kind == "current")
+    note = next(g for g in cur.gaps if g.code == "history_unsupported")
+    assert "فراولة" in note.text_ar and "فراولة" in note.text
