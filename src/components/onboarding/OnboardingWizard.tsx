@@ -68,9 +68,19 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
 
     const handleNext = useCallback(() => {
         if (!canGoNext) return;
+        // Leaving the pin question: start the NASA satellite requests for this field now,
+        // so they are ready by the time the analysis runs. Fire and forget.
+        const pin = currentQuestion?.id === "pin" ? (answers.pin as { lat?: number; lng?: number } | undefined) : undefined;
+        if (pin && Number.isFinite(pin.lat) && Number.isFinite(pin.lng)) {
+            fetch("/api/layers/prefetch", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ lat: pin.lat, lng: pin.lng }),
+            }).catch(() => {});
+        }
         setDirection("forward");
         goNext();
-    }, [canGoNext, goNext]);
+    }, [canGoNext, goNext, currentQuestion, answers.pin]);
 
     const handleBack = useCallback(() => {
         setDirection("backward");

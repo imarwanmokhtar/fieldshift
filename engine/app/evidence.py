@@ -13,8 +13,9 @@ KEY_ANSWERS = {"last_crop", "prev_crop", "irrigation_method", "water_reliability
 
 
 def confidence_for(st: Strategy, profile: FarmProfile, climate_source: str, ndvi: NdviFeatures | None,
-                   mocked: list[str], history_assumed: bool) -> tuple[str, int]:
-    score = 90
+                   mocked: list[str], history_assumed: bool, et_check: int = 0) -> tuple[str, int]:
+    """`et_check`: +1 when satellite-observed water use agrees with our estimate, -1 when it does not."""
+    score = 90 + 5 * et_check
     for q in profile.unknown_answers:
         score -= 5 if q in KEY_ANSWERS else 2
     if climate_source != "nasa_power":
@@ -35,11 +36,81 @@ def confidence_for(st: Strategy, profile: FarmProfile, climate_source: str, ndvi
     return level, score
 
 
+ET_AGREE_PCT = 30          # model vs satellite water use within this % counts as agreement
+
+
+def satellite_facts(ctx: Context, layers: dict) -> dict:
+    """Facts from the NASA AppEEARS layers (HLS, MODIS, ECOSTRESS, SMAP, SRTM).
+
+    These check the engine's answers against observations; they do not change scores.
+    """
+    feats = layers.get("features") or {}
+    state = layers.get("state", "unavailable")
+    notes: list[Fact] = []
+    gaps: list[Fact] = []
+    current_evidence: list[Fact] = []
+    et_check = 0
+    obs: dict = {"state": state, "sources": layers.get("sources") or []}
+
+    if state in ("requested", "processing"):
+        gaps.append(fact("layers_pending"))
+    elif state == "failed":
+        gaps.append(fact("layers_failed"))
+
+    # Water: our modelled crop water use for the current rotation vs what satellites saw.
+    model_mm = sum(ctx.metrics[c].etc_mm for c in ctx.current if c in ctx.metrics)
+    et = feats.get("et_modis")
+    if et and model_mm > 0 and et.get("mean_annual_mm"):
+        sat_mm = float(et["mean_annual_mm"])
+        diff = int(round((model_mm - sat_mm) / sat_mm * 100))
+        current_evidence.append(fact("et_check_modis", sat=int(sat_mm), model=int(round(model_mm)),
+                                     y0=et["years"][0], y1=et["years"][1]))
+        if abs(diff) <= ET_AGREE_PCT:
+            et_check = 1
+            notes.append(fact("et_check_agrees", pct=abs(diff)))
+        else:
+            et_check = -1
+            gaps.append(fact("et_check_differs", pct=abs(diff)))
+        obs["et_check"] = {"model_mm_per_year": round(model_mm), "modis_mm_per_year": int(sat_mm),
+                           "difference_pct": diff, "years": et["years"]}
+    eco = feats.get("et_ecostress")
+    if eco:
+        notes.append(fact("ecostress_et", mm=eco["median_mm_day"], n=eco["n_obs"]))
+        obs["ecostress"] = eco
+
+    smap = feats.get("smap") or {}
+    pct = smap.get("rootzone_pctl_last90")
+    if pct is not None:
+        code = "smap_dry" if pct < 20 else "smap_wet" if pct > 80 else "smap_normal"
+        notes.append(fact(code, pct=int(pct)))
+        obs["smap"] = smap
+
+    if feats.get("elevation_m") is not None:
+        notes.append(fact("elevation", m=int(feats["elevation_m"])))
+        obs["elevation_m"] = feats["elevation_m"]
+
+    # Standing water in summer (HLS NDWI > 0) is the usual signature of flooded rice.
+    share = feats.get("flooded_summer_share")
+    if share is not None:
+        summer_crop = ctx.current[1]
+        if summer_crop == "rice" and share < 0.1:
+            gaps.append(fact("flood_not_seen"))
+        elif summer_crop != "rice" and share >= 0.5:
+            gaps.append(fact("flood_seen", crop=summer_crop))
+        obs["flooded_summer_share"] = share
+
+    return {"notes": notes, "gaps": gaps, "current_evidence": current_evidence,
+            "et_check": et_check, "observations": obs}
+
+
 def build_pack(ctx: Context, climate: ClimateData, clim: ClimateFeatures, strategies: list[Strategy],
                recommended_id: str, ndvi: NdviFeatures | None, layers_used: list[str], layers_mocked: list[str],
-               layers_unavailable: list[str], scenario: dict[str, float]) -> EvidencePack:
+               layers_unavailable: list[str], scenario: dict[str, float],
+               layers: dict | None = None) -> EvidencePack:
     p = ctx.profile
     notes: list[Fact] = []
+    sat = satellite_facts(ctx, layers or {})
+    notes.extend(sat["notes"])
     if climate.source == "nasa_power":
         notes.append(fact("note_climate_resolution"))
     else:
@@ -69,6 +140,7 @@ def build_pack(ctx: Context, climate: ClimateData, clim: ClimateFeatures, strate
             seen = ndvi.winter_peak_last_season if season == "winter" else ndvi.summer_peak_last_season if season == "summer" else None
             if seen is False:
                 shared_gaps.append(fact("ndvi_mismatch", season=season, crop=p.last_crop.crop))
+    shared_gaps.extend(sat["gaps"])
     shared_gaps.append(fact("crop_values_unverified"))
     shared_gaps.append(fact("income_rough"))
 
@@ -77,8 +149,10 @@ def build_pack(ctx: Context, climate: ClimateData, clim: ClimateFeatures, strate
         st.gaps = shared_gaps + st.gaps
         if ndvi is not None and st.kind == "current":
             st.evidence.append(fact("ndvi_bare", days=int(ndvi.bare_days_per_year)))
+        if st.kind == "current":
+            st.evidence.extend(sat["current_evidence"])
         st.confidence, st.confidence_score = confidence_for(  # type: ignore[assignment]
-            st, p, climate.source, ndvi, layers_mocked, history_assumed and st.kind == "current")
+            st, p, climate.source, ndvi, layers_mocked, history_assumed and st.kind == "current", sat["et_check"])
 
     observations = {
         "climate_source": climate.source,
@@ -94,6 +168,7 @@ def build_pack(ctx: Context, climate: ClimateData, clim: ClimateFeatures, strate
         "rain_winter_mm": round(clim.rain_winter_mm),
         "rain_summer_mm": round(clim.rain_summer_mm),
         "crop_metrics": {cid: m.model_dump() for cid, m in ctx.metrics.items()},
+        "satellite": sat["observations"],
     }
     if ndvi is not None:
         observations["ndvi"] = {"source": ndvi.source, "bare_field_days_per_year": ndvi.bare_days_per_year,

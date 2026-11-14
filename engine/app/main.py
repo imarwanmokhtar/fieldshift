@@ -10,6 +10,7 @@ from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Response
 from pydantic import BaseModel
 
 from . import db
+from .data import appeears, field_layers
 from .llm import model_name, provider
 from .pipeline import compare_choice, run_analysis
 from .profile import ProfileError
@@ -62,9 +63,35 @@ def compare(req: CompareRequest, x_api_key: str = Header(...)):
         raise HTTPException(422, str(exc)) from exc
 
 
+class LayersRequest(BaseModel):
+    user_id: str
+    lat: float
+    lng: float
+
+
+@app.post("/layers/prefetch")
+def layers_prefetch(req: LayersRequest, x_api_key: str = Header(...)):
+    """Called when the farmer drops the pin: start the NASA AppEEARS requests (takes seconds,
+    the requests themselves finish at NASA within minutes and are collected later)."""
+    _check_key(x_api_key)
+    if not (-90 <= req.lat <= 90 and -180 <= req.lng <= 180):
+        raise HTTPException(422, "invalid coordinates")
+    row = field_layers.prefetch(req.user_id, req.lat, req.lng)
+    return {"status": row.get("status"), "tasks": list((row.get("tasks") or {}).keys())}
+
+
+@app.post("/layers/status")
+def layers_status(req: LayersRequest, x_api_key: str = Header(...)):
+    """Collect finished requests (short time budget) and report what is ready."""
+    _check_key(x_api_key)
+    feats, state, sources = field_layers.for_analysis(req.user_id, req.lat, req.lng, budget_s=settings.LAYERS_BUDGET_S)
+    return {"state": state, "layers": sorted((feats or {}).keys()), "sources": sources}
+
+
 @app.get("/health")
 def health():
     prov = provider()
     return {"ok": True, "llm": f"{prov}:{model_name(prov)}" if prov else "templates (no LLM key)",
             "supabase": bool(settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY),
+            "earthdata": appeears.configured(),
             "copernicus": bool(settings.COPERNICUS_CLIENT_ID), "mock_layers": settings.USE_MOCK_LAYERS}

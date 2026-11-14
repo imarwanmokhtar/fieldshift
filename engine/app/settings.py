@@ -29,6 +29,11 @@ class Settings:
     ANTHROPIC_API_KEY: str = field(default_factory=lambda: _env("ANTHROPIC_API_KEY"))
     # Empty = default for the provider (see llm.DEFAULT_MODELS).
     LLM_MODEL: str = field(default_factory=lambda: _env("LLM_MODEL"))
+    # NASA Earthdata Login (https://urs.earthdata.nasa.gov) for AppEEARS: HLS, MODIS, ECOSTRESS, SMAP, SRTM.
+    EARTHDATA_USERNAME: str = field(default_factory=lambda: _env("EARTHDATA_USERNAME"))
+    EARTHDATA_PASSWORD: str = field(default_factory=lambda: _env("EARTHDATA_PASSWORD"))
+    # Max seconds an analysis waits while collecting finished AppEEARS results.
+    LAYERS_BUDGET_S: float = field(default_factory=lambda: float(_env("LAYERS_BUDGET_S", "20")))
     COPERNICUS_CLIENT_ID: str = field(default_factory=lambda: _env("COPERNICUS_CLIENT_ID"))
     COPERNICUS_CLIENT_SECRET: str = field(default_factory=lambda: _env("COPERNICUS_CLIENT_SECRET"))
     # Return realistic mock values for the stubbed layers (NDVI, SMAP, IMERG).

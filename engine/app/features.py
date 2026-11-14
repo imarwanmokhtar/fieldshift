@@ -51,7 +51,7 @@ def et0_hargreaves(tmax, tmin, ra) -> np.ndarray:
     return np.maximum(0.0, 0.0023 * (tmean + 17.8) * np.sqrt(np.maximum(tmax - tmin, 0)) * 0.408 * ra)
 
 
-def et0_penman_monteith(df: pd.DataFrame, lat: float) -> pd.Series:
+def et0_penman_monteith(df: pd.DataFrame, lat: float, elevation_m: float = ELEVATION_M) -> pd.Series:
     """Daily reference evapotranspiration, mm/day (FAO-56 Penman-Monteith).
 
     Falls back to Hargreaves on days where radiation, humidity or wind is missing.
@@ -65,12 +65,12 @@ def et0_penman_monteith(df: pd.DataFrame, lat: float) -> pd.Series:
     rh, u2 = df["RH2M"].to_numpy(float), df["WS2M"].to_numpy(float)
 
     ra = extraterrestrial_radiation(lat, doy)
-    pressure = 101.3 * ((293 - 0.0065 * ELEVATION_M) / 293) ** 5.26
+    pressure = 101.3 * ((293 - 0.0065 * elevation_m) / 293) ** 5.26
     gamma = 0.000665 * pressure
     es = (_sat_vp(tmax) + _sat_vp(tmin)) / 2
     ea = np.clip(rh, 0, 100) / 100 * es
     slope = 4098 * _sat_vp(tmean) / (tmean + 237.3) ** 2
-    rso = (0.75 + 2e-5 * ELEVATION_M) * ra
+    rso = (0.75 + 2e-5 * elevation_m) * ra
     rns = 0.77 * rs
     rnl = 4.903e-9 * (((tmax + 273.16) ** 4 + (tmin + 273.16) ** 4) / 2) \
         * (0.34 - 0.14 * np.sqrt(np.maximum(ea, 0))) * (1.35 * np.clip(rs / rso, 0.25, 1.0) - 0.35)
@@ -106,9 +106,10 @@ def _trend(years: list[int], values: list[float]) -> float:
     return float(slope)
 
 
-def climate_features(df: pd.DataFrame, lat: float) -> ClimateFeatures:
+def climate_features(df: pd.DataFrame, lat: float, elevation_m: float | None = None) -> ClimateFeatures:
+    """`elevation_m` from NASA SRTM when available; otherwise the Nile Delta default (10 m)."""
     d = df.copy()
-    d["ET0"] = et0_penman_monteith(d, lat)
+    d["ET0"] = et0_penman_monteith(d, lat, ELEVATION_M if elevation_m is None else elevation_m)
     counts = d.groupby(d.index.year)["T2M_MAX"].count()
     years = [int(y) for y, n in counts.items() if n >= 330]   # complete years only
     full = d[d.index.year.isin(years)]

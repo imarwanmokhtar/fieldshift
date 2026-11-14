@@ -295,6 +295,19 @@ function Results({
         ))}
       </div>
 
+      {pack.data_quality.layers_used.length > 0 && (
+        <section className="border-[3px] border-ink bg-green-light p-6">
+          <h2 className="font-heading text-lg font-bold uppercase">{t.dataUsed}</h2>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {pack.data_quality.layers_used.map((id) => (
+              <li key={id} className="border-2 border-ink bg-paper px-2 py-1 text-sm font-bold">
+                {t.layerNames[id] ?? id}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {pack.data_quality.notes.length > 0 && (
         <section className="border-[3px] border-ink bg-paper p-6">
           <h2 className="font-heading text-lg font-bold uppercase">{t.dataNotes}</h2>
