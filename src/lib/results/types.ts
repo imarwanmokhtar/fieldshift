@@ -51,6 +51,7 @@ export interface EvidencePack {
     hot_days_per_year?: { mean: number; trend_per_year: number };
     rain_mm_per_year?: number;
     reference_et0_mm_per_year?: number;
+    satellite?: { state?: string; [key: string]: unknown };
     [key: string]: unknown;
   };
   strategies: Strategy[];
@@ -67,10 +68,18 @@ export interface StrategyText {
   risks: string[];
 }
 
+export interface Conclusion {
+  headline: string;
+  steps: string[];
+  check: string;
+}
+
 export interface Narrative {
   overview: string;
   strategies: StrategyText[];
   reminder: string;
+  /** "Summary" (الخلاصة); missing on analyses made before it existed. */
+  conclusion?: Conclusion | null;
   lang: "ar" | "en";
   source: "llm" | "template";
   fallback_reason?: string | null;

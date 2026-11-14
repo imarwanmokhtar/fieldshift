@@ -222,3 +222,30 @@ html[lang="ar"] * {
     animation: none;
   }
 }
+
+/* Landing-page cards: on hover the card lifts a little, its border changes color and its
+   hard shadow grows downward (mirrored in RTL). Set --card-hover-border on a card to pick
+   a border color that contrasts with its own background (default: dark green). */
+.card-lift {
+  transition:
+    transform 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+.card-lift:hover {
+  transform: translateY(-6px);
+  border-color: var(--card-hover-border, var(--green-dark));
+  box-shadow: 6px 12px 0 0 var(--ink);
+}
+[dir="rtl"] .card-lift:hover {
+  box-shadow: -6px 12px 0 0 var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-lift {
+    transition: border-color 200ms ease;
+  }
+  .card-lift:hover {
+    transform: none;
+  }
+}

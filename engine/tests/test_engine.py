@@ -169,7 +169,7 @@ def test_llm_bad_numbers_fall_back_after_retry(monkeypatch, tmp_path):
 
     def fake_call(view, lang, feedback=None):
         calls.append(feedback)
-        return json.dumps({"overview": "Saves 424242 m3.", "reminder": "r", "strategies": [
+        return json.dumps({"overview": "Saves 424242 m3.", "reminder": "r", "conclusion": {"headline": "h", "steps": ["a", "b", "c"], "check": "c"}, "strategies": [
             {"id": s.id, "summary": "s", "why": "w", "evidence": [], "benefits": [], "gaps": [], "risks": []}
             for s in pack.strategies]})
     monkeypatch.setattr(llm, "_call", fake_call)
@@ -178,7 +178,7 @@ def test_llm_bad_numbers_fall_back_after_retry(monkeypatch, tmp_path):
     assert "424242" in (out.fallback_reason or "")
 
     def good_call(view, lang, feedback=None):
-        return "```json\n" + json.dumps({"overview": "We compared options.", "reminder": "Ask an expert.", "strategies": [
+        return "```json\n" + json.dumps({"overview": "We compared options.", "reminder": "Ask an expert.", "conclusion": {"headline": "h", "steps": ["a", "b", "c"], "check": "c"}, "strategies": [
             {"id": s.id, "summary": f"Score {s.scores['overall']} out of 100.", "why": "w", "evidence": [],
              "benefits": [], "gaps": [], "risks": []} for s in pack.strategies]}) + "\n```"
     monkeypatch.setattr(llm, "_call", good_call)
@@ -230,7 +230,7 @@ def test_gemini_request_and_parse(monkeypatch):
 
     def fake_post(url, headers, json, timeout):
         seen.update(url=url, headers=headers, body=json)
-        reply = {"overview": "قارنّا الخيارات.", "reminder": "راجع مهندساً زراعياً.", "strategies": [
+        reply = {"overview": "قارنّا الخيارات.", "reminder": "راجع مهندساً زراعياً.", "conclusion": {"headline": "h", "steps": ["a", "b", "c"], "check": "c"}, "strategies": [
             {"id": s.id, "summary": f"الدرجة {s.scores['overall']} من 100.", "why": "w", "evidence": [],
              "benefits": [], "gaps": [], "risks": []} for s in pack.strategies]}
         return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": __import__("json").dumps(reply, ensure_ascii=False)}]}}]},
@@ -243,7 +243,7 @@ def test_gemini_request_and_parse(monkeypatch):
     assert llm._thinking_config("gemini-2.5-flash") == {"thinkingBudget": 0}
     assert seen["headers"]["x-goog-api-key"] == "g-key"
     assert seen["body"]["generationConfig"]["responseMimeType"] == "application/json"
-    assert seen["body"]["generationConfig"]["responseSchema"]["required"] == ["overview", "strategies", "reminder"]
+    assert seen["body"]["generationConfig"]["responseSchema"]["required"] == ["overview", "strategies", "reminder", "conclusion"]
     assert "DATA:" in seen["body"]["contents"][0]["parts"][0]["text"]
 
 
@@ -273,7 +273,7 @@ def test_openrouter_request_and_parse(monkeypatch):
 
     def fake_post(url, headers, json, timeout):
         seen.update(url=url, headers=headers, body=json)
-        reply = {"overview": "قارنّا الخيارات.", "reminder": "راجع مهندساً زراعياً.", "strategies": [
+        reply = {"overview": "قارنّا الخيارات.", "reminder": "راجع مهندساً زراعياً.", "conclusion": {"headline": "h", "steps": ["a", "b", "c"], "check": "c"}, "strategies": [
             {"id": s.id, "summary": "ملخص.", "why": "w", "evidence": [], "benefits": [], "gaps": [], "risks": []}
             for s in pack.strategies]}
         return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {
@@ -309,7 +309,7 @@ def test_groq_request(monkeypatch):
 
     def fake_post(url, headers, json, timeout):
         seen.update(url=url, headers=headers, body=json)
-        reply = {"overview": "We compared the options.", "reminder": "Check with an agronomist.", "strategies": [
+        reply = {"overview": "We compared the options.", "reminder": "Check with an agronomist.", "conclusion": {"headline": "h", "steps": ["a", "b", "c"], "check": "c"}, "strategies": [
             {"id": s.id, "summary": "Summary.", "why": "w", "evidence": [], "benefits": [], "gaps": [], "risks": []}
             for s in pack.strategies]}
         return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {
@@ -386,3 +386,39 @@ def test_practice_rules_drip_and_salt():
     assert "awd_rice" not in ids and skipped == ["awd_rice"]
     ids, _ = applicable_practices(flood, {"rice"}, 0)
     assert set(ids) == {"laser_leveling", "awd_rice"}
+
+
+def test_plan_facts_and_template_conclusion():
+    import app.llm as llm
+    pack, _ = analyze_answers(ANSWERS, "en")
+    codes = [f.code for f in pack.plan]
+    assert codes[0] in ("plan_recommend", "plan_keep")
+    assert codes[-1] == "plan_check" and "plan_confidence" in codes
+    out = llm.fallback_text(pack, "ar")
+    assert out.conclusion is not None and out.conclusion.headline
+    assert 1 <= len(out.conclusion.steps) <= 5
+    assert "مهندس زراعي" in out.conclusion.check
+
+
+def test_llm_must_return_conclusion(monkeypatch):
+    import json as _json
+    import httpx
+    import app.llm as llm
+    monkeypatch.setattr(llm, "settings", type("S", (), {
+        "LLM_PROVIDER": "groq", "GROQ_API_KEY": "k", "OPENROUTER_API_KEY": "", "GEMINI_API_KEY": "",
+        "ANTHROPIC_API_KEY": "", "LLM_MODEL": ""})())
+    monkeypatch.setattr(llm.cache, "get", lambda *a, **k: None)
+    monkeypatch.setattr(llm.cache, "put", lambda *a, **k: None)
+    pack, _ = analyze_answers(ANSWERS, "en")
+    base = {"overview": "o", "reminder": "r", "strategies": [
+        {"id": s.id, "summary": "s", "why": "w", "evidence": [], "benefits": [], "gaps": [], "risks": []}
+        for s in pack.strategies]}
+    replies = [base, {**base, "conclusion": {"headline": "h", "steps": ["a", "b", "c"], "check": "c"}}]
+
+    def fake_post(url, headers, json, timeout):
+        body = replies.pop(0)
+        return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {"content": _json.dumps(body)}}]},
+                              request=httpx.Request("POST", url))
+    monkeypatch.setattr(httpx, "post", fake_post)
+    out = llm.narrate(pack, "en")
+    assert out.source == "llm" and out.conclusion.steps == ["a", "b", "c"]   # first reply rejected, second accepted

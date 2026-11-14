@@ -5,7 +5,7 @@ from __future__ import annotations
 from .data.power import ClimateData
 from .features import ClimateFeatures, NdviFeatures
 from .schemas import DataQuality, EvidencePack, Fact, FarmProfile, Strategy
-from .strategies import Context
+from .strategies import CRITERIA_FOR_PRIORITY, Context
 from .texts import fact
 
 # Answers whose absence really matters for the result get a bigger confidence cut.
@@ -32,6 +32,51 @@ def confidence_for(st: Strategy, profile: FarmProfile, climate_source: str, ndvi
     score = max(5, min(95, score))
     level = "high" if score >= 70 else "medium" if score >= 45 else "low"
     return level, score
+
+
+def plan_facts(strategies: list[Strategy], recommended_id: str, priorities: list[str],
+               no_soil_test: bool, data_gaps: list[Fact]) -> list[Fact]:
+    """Facts behind the farmer's "Summary" (الخلاصة), computed from the scored options.
+
+    Only engine numbers are used; the LLM may rephrase these facts but not add to them."""
+    by_id = {s.id: s for s in strategies}
+    cur = next((s for s in strategies if s.kind == "current"), None)
+    rec = by_id.get(recommended_id)
+    if cur is None or rec is None:
+        return []
+    out: list[Fact] = []
+    if rec.kind == "current":
+        out.append(fact("plan_keep", overall=rec.scores["overall"]))
+    else:
+        out.append(fact("plan_recommend", strategy=rec.kind, overall=rec.scores["overall"], current=cur.scores["overall"]))
+    for pr in priorities[:3]:
+        crit = CRITERIA_FOR_PRIORITY.get(pr)
+        if not crit:
+            continue
+        best = max(strategies, key=lambda s: (s.scores[crit], s.kind == "current"))
+        if best.kind != "current" and best.scores[crit] > cur.scores[crit]:
+            out.append(fact("plan_priority_best", priority=pr, strategy=best.kind,
+                            score=best.scores[crit], current=cur.scores[crit]))
+    cw = cur.metrics.get("water_m3_per_feddan_year", 0)
+    if rec.kind not in ("current", "practice") and cw > 0:
+        rw = rec.metrics.get("water_m3_per_feddan_year", 0)
+        if cw - rw >= 200:
+            out.append(fact("plan_water", strategy=rec.kind, pct=int(round((cw - rw) / cw * 100)),
+                            m3=int(round(cw - rw, -1))))
+    pra = next((s for s in strategies if s.kind == "practice"), None)
+    if pra and cw > 0 and cw - pra.metrics.get("water_m3_per_feddan_year", cw) >= 200:
+        out.append(fact("plan_practice", practices=pra.practices,
+                        m3=int(round(cw - pra.metrics["water_m3_per_feddan_year"], -1))))
+    new = [r.params.get("crop") for r in rec.risks if r.code == "new_crop"]
+    if new:
+        out.append(fact("plan_new_crops", new_crops=new))
+    out.extend([r for r in rec.risks if r.code not in ("new_crop", "heat_rising")][:2])
+    if no_soil_test:
+        out.append(fact("plan_soil_test"))
+    out.extend(data_gaps)
+    out.append(fact("plan_confidence", level=rec.confidence))
+    out.append(fact("plan_check"))
+    return out
 
 
 ET_AGREE_PCT = 30          # model vs satellite water use within this % counts as agreement
@@ -181,7 +226,11 @@ def build_pack(ctx: Context, climate: ClimateData, clim: ClimateFeatures, strate
         observations["ndvi"] = {"source": ndvi.source, "bare_field_days_per_year": ndvi.bare_days_per_year,
                                 "peaks": ndvi.peaks[-6:], "interpolated_share": ndvi.interpolated_share}
 
+    plan = plan_facts(strategies, recommended_id, p.priorities, any(g.code == "no_soil_test" for g in shared_gaps),
+                      [g for g in shared_gaps if g.code in ("unknown_answers", "layers_pending")])
+
     return EvidencePack(
+        plan=plan,
         field={"lat": p.lat, "lng": p.lng, "area_feddan": round(p.area_feddan, 2), "area_ha": round(p.area_ha, 2),
                "name": p.field_name, "soil_texture": p.soil_texture, "irrigation_method": p.irrigation_method,
                "current_rotation": list(ctx.current)},

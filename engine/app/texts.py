@@ -207,6 +207,24 @@ T: dict[str, dict[str, str]] = {
                          "ar": "بعض الطبقات قيم تجريبية وليست قياسات حقيقية: {layers}."},
     "note_scenario": {"en": "Scenario: {temp}°C hotter and {rain}% of normal rainfall.",
                       "ar": "سيناريو: أعلى حرارة بمقدار {temp} درجة ومطر بنسبة {rain}% من المعتاد."},
+    # plan facts (the "Summary" / الخلاصة)
+    "plan_recommend": {"en": "{strategy} matches your priorities best in this comparison: overall {overall} out of 100, against {current} for your current rotation.",
+                       "ar": "{strategy} هي الأقرب لأولوياتك في هذه المقارنة: الدرجة الكلية {overall} من 100، مقابل {current} لدورتك الحالية."},
+    "plan_keep": {"en": "Your current rotation already matches your priorities best in this comparison (overall {overall} out of 100).",
+                  "ar": "دورتك الحالية هي الأقرب لأولوياتك في هذه المقارنة (الدرجة الكلية {overall} من 100)."},
+    "plan_priority_best": {"en": "For {priority}, the strongest option is {strategy}: {score} out of 100, against {current} now.",
+                           "ar": "بالنسبة لـ{priority}، أقوى خيار هو {strategy}: {score} من 100، مقابل {current} حالياً."},
+    "plan_water": {"en": "{strategy} may use about {pct}% less irrigation water than your current rotation (about {m3} m³ per feddan per year less).",
+                   "ar": "قد تستهلك {strategy} مياه ري أقل بحوالي {pct}% من دورتك الحالية (أقل بحوالي {m3} متر مكعب للفدان في السنة)."},
+    "plan_practice": {"en": "Keeping your crops but using {practices} may save about {m3} m³ of water per feddan per year (lower end of reported ranges).",
+                      "ar": "الإبقاء على محاصيلك مع {practices} قد يوفر حوالي {m3} متر مكعب من المياه للفدان في السنة (الحد الأدنى من النطاقات المنشورة)."},
+    "plan_new_crops": {"en": "{new_crops} would be new for you: try them on part of the field first.",
+                       "ar": "{new_crops} ستكون جديدة عليك: جربها في جزء من الحقل أولاً."},
+    "plan_soil_test": {"en": "A soil test (pH and salinity) would make the soil and salt comparison much more accurate.",
+                       "ar": "تحليل التربة (الحموضة والملوحة) سيجعل مقارنة التربة والملوحة أدق بكثير."},
+    "plan_confidence": {"en": "Confidence in this comparison: {level}.", "ar": "درجة الثقة في هذه المقارنة: {level}."},
+    "plan_check": {"en": "Before deciding, check seeds, prices, water allocation and local rules with an agronomist or extension officer.",
+                   "ar": "قبل اتخاذ القرار، راجع البذور والأسعار وحصة المياه والقواعد المحلية مع مهندس زراعي أو مرشد زراعي."},
     # narrative scaffolding
     "overview": {"en": "We compared {n} crop rotations for your {area} feddan field, using NASA climate data and your answers. The best match for your priorities ({priorities}) is: {best}.",
                  "ar": "قارنّا {n} دورات زراعية لحقلك ومساحته {area} فدان، باستخدام بيانات المناخ من ناسا وإجاباتك. الأنسب لأولوياتك ({priorities}) هي: {best}."},
@@ -256,6 +274,18 @@ def _localize(key: str, value: Any, lang: str) -> Any:
         return sep.join(PRIORITY_NAMES.get(v, {}).get(lang, v) for v in value)
     if key == "crops" and isinstance(value, list):
         return (" ثم " if lang == "ar" else " then ").join(crop_name(c, lang) for c in value)
+    if key == "strategy":
+        return STRATEGY_NAMES.get(value, {}).get(lang, value)
+    if key == "priority":
+        return PRIORITY_NAMES.get(value, {}).get(lang, value)
+    if key == "level":
+        return CONFIDENCE_NAMES.get(value, {}).get(lang, value)
+    if key == "new_crops" and isinstance(value, list):
+        return ("، " if lang == "ar" else ", ").join(crop_name(c, lang) for c in value)
+    if key == "practices" and isinstance(value, list):
+        from .practices import PRACTICES
+        names = [PRACTICES[p]["name_ar" if lang == "ar" else "name_en"] for p in value if p in PRACTICES]
+        return ("، " if lang == "ar" else ", ").join(names)
     if key == "layers" and isinstance(value, list):
         return ", ".join(value)
     if isinstance(value, float):

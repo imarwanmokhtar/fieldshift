@@ -11,13 +11,13 @@ export function DataSources({ dict }: { dict: Dictionary }) {
           {dict.data.sources.map((source) => (
             <div
               key={source.name}
-              className="border-[3px] border-ink bg-green-light p-6 shadow-brutal"
+              className="card-lift border-[3px] border-ink bg-green-light p-6 shadow-brutal"
             >
               <p className="font-heading text-lg font-bold uppercase">{source.name}</p>
               <p className="mt-3 text-base">{source.body}</p>
             </div>
           ))}
-          <div className="flex items-center border-[3px] border-ink bg-ink p-6 text-paper shadow-brutal">
+          <div className="card-lift flex items-center border-[3px] border-ink bg-ink p-6 text-paper shadow-brutal [--card-hover-border:var(--green-light)]">
             <p className="text-base">{dict.data.explain}</p>
           </div>
         </div>

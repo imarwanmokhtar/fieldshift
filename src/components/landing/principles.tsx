@@ -7,7 +7,7 @@ export function Principles({ dict }: { dict: Dictionary }) {
         <h2 className="font-heading text-3xl font-bold uppercase tracking-tight md:text-4xl">
           {dict.principles.title}
         </h2>
-        <ul className="mt-10 space-y-0 border-[3px] border-ink bg-paper shadow-brutal">
+        <ul className="card-lift mt-10 space-y-0 border-[3px] border-ink bg-paper shadow-brutal">
           {dict.principles.items.map((text, i) => (
             <li
               key={i}

@@ -20,7 +20,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from .data import cache
-from .schemas import EvidencePack, Narrative, NarrativeOut, StrategyText
+from .schemas import Conclusion, EvidencePack, Narrative, NarrativeOut, StrategyText
 from .settings import settings
 from .practices import PRACTICES
 from .texts import CONFIDENCE_NAMES, STRATEGY_NAMES, render, sequence_text
@@ -37,6 +37,17 @@ A strategy with "practices" keeps the same crops and changes how they are grown.
 reported ranges, not verified on this field: say so, never call them proven or documented, and never claim that
 income or yield stays the same or improves. Name each practice exactly as in "practices" (English) or "practices_ar" (Arabic).
 The "reminder" is one sentence telling the farmer to review the options with a local agricultural expert.
+The "conclusion" is the farmer's summary of what to do next to reach THEIR priorities (farmer_priorities, most
+important first). Build it ONLY from "plan_facts" and the strategies:
+- "headline": one full sentence that names the option fitting their priorities best AND says which of their
+  priorities it serves, with its overall score against their current rotation.
+- "steps": 4 or 5 short, concrete actions, most useful first: (1) what to change (which crops, in which season) to move
+  to that option; then the strongest action for each of their other top priorities (e.g. a water-saving practice and
+  how much water it may save); then a risk from plan_facts to check on the field; then the data that would make the
+  comparison more accurate. Each step is tied to a plan fact and keeps its numbers.
+- "check": one sentence on what to verify locally. Do not repeat it inside "steps".
+Use "may"/"could"; never promise yields or profits; never give irrigation amounts or dates. In Arabic, write crop and
+practice names in Arabic only (no English words in brackets).
 Reply in the requested language (en = English, ar = simple Modern Standard Arabic that Egyptian farmers understand).
 Write numbers with Western digits (0-9), exactly as they appear in the DATA.
 Keep it short: at most 4 short items in each list, and one sentence per item.
@@ -63,6 +74,7 @@ def llm_view(pack: EvidencePack) -> dict[str, Any]:
             "rain_mm_per_year": obs.get("rain_mm_per_year"),
         },
         "data_quality_notes": [n.text for n in pack.data_quality.notes],
+        "plan_facts": [f.text for f in pack.plan],
         "strategies": [{
             "id": s.id, "name": s.name, "sequence": s.sequence,
             **({"practices": [PRACTICES[p]["name_en"] for p in s.practices],
@@ -132,7 +144,12 @@ def fallback_text(pack: EvidencePack, lang: str, reason: str | None = None) -> N
             gaps=[render(f.code, f.params, lang) for f in s.gaps[:6]],
             risks=[render(f.code, f.params, lang) for f in s.risks[:6]],
         ))
-    return NarrativeOut(overview=overview, strategies=texts, reminder=render("reminder", {}, lang),
+    head = next((f for f in pack.plan if f.code in ("plan_recommend", "plan_keep")), None)
+    steps = [render(f.code, f.params, lang) for f in pack.plan
+             if f.code not in ("plan_recommend", "plan_keep", "plan_check", "plan_confidence")][:5]
+    conclusion = Conclusion(headline=render(head.code, head.params, lang) if head else overview,
+                            steps=steps, check=render("plan_check", {}, lang)) if pack.plan else None
+    return NarrativeOut(overview=overview, strategies=texts, reminder=render("reminder", {}, lang), conclusion=conclusion,
                         lang=lang, source="template", fallback_reason=reason)  # type: ignore[arg-type]
 
 
@@ -193,9 +210,11 @@ GEMINI_SCHEMA = {
             "propertyOrdering": ["id", "summary", "why", "evidence", "benefits", "gaps", "risks"],
         }},
         "reminder": _STR,
+        "conclusion": {"type": "OBJECT", "properties": {"headline": _STR, "steps": _STR_LIST, "check": _STR},
+                       "required": ["headline", "steps", "check"]},
     },
-    "required": ["overview", "strategies", "reminder"],
-    "propertyOrdering": ["overview", "strategies", "reminder"],
+    "required": ["overview", "strategies", "reminder", "conclusion"],
+    "propertyOrdering": ["overview", "strategies", "conclusion", "reminder"],
 }
 
 
@@ -383,6 +402,11 @@ def narrate(pack: EvidencePack, lang: str = "en") -> NarrativeOut:
         except ValidationError as exc:
             reason = f"invalid JSON from model ({exc.error_count()} errors): {str(exc)[:200]}"
             feedback = f"invalid JSON for the schema ({exc.error_count()} errors)."
+            log.warning("LLM attempt %d: %s", attempt + 1, reason)
+            continue
+        if narr.conclusion is None or not (2 <= len(narr.conclusion.steps) <= 6):
+            reason = "missing or malformed conclusion"
+            feedback = "the 'conclusion' object (headline, 3-5 steps, check) is required."
             log.warning("LLM attempt %d: %s", attempt + 1, reason)
             continue
         if [s.id for s in narr.strategies] != ids:

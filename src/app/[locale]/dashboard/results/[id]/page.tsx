@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isLocale, type Locale } from "@/lib/i18n";
@@ -63,6 +63,23 @@ async function ResultsContent({
     .eq("id", id)
     .maybeSingle();
   if (!data) notFound();
+
+  // The explanation text is written in one language. When the page is shown in the other
+  // language, use this field's analysis in the page language if there is one that is at
+  // least as recent; otherwise the client starts one automatically.
+  if (data.status === "done" && data.lang !== locale && data.field_id) {
+    const { data: same } = await supabase
+      .from("analyses")
+      .select("id")
+      .eq("field_id", data.field_id)
+      .eq("lang", locale)
+      .in("status", ["done", "pending", "running"])
+      .gte("created_at", data.created_at)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (same) redirect(`/${locale}/dashboard/results/${same.id}`);
+  }
 
   return <ResultsClient locale={locale} initial={data as AnalysisRow} />;
 }

@@ -138,6 +138,7 @@ class EvidencePack(BaseModel):
     observations: dict[str, Any]
     strategies: list[Strategy]
     recommended_id: str
+    plan: list[Fact] = Field(default_factory=list)   # facts behind the "Summary" (الخلاصة), computed by the engine
 
 
 # ---------------------------------------------------------------- narrative
@@ -152,10 +153,18 @@ class StrategyText(BaseModel):
     risks: list[str]
 
 
+class Conclusion(BaseModel):
+    """The "Summary" (الخلاصة): what the farmer could do next to reach their priorities."""
+    headline: str          # one sentence
+    steps: list[str]       # 3-5 short actions, most useful first
+    check: str             # one sentence: what to verify locally before deciding
+
+
 class Narrative(BaseModel):
     overview: str
     strategies: list[StrategyText]
     reminder: str
+    conclusion: Conclusion | None = None    # optional only so older stored results still load
 
 
 class NarrativeOut(Narrative):

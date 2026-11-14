@@ -9,7 +9,7 @@ export function HowItWorks({ dict }: { dict: Dictionary }) {
         </h2>
         <ol className="mt-10 grid gap-8 md:grid-cols-3">
           {dict.how.steps.map((step, i) => (
-            <li key={i} className="border-[3px] border-paper p-6">
+            <li key={i} className="card-lift border-[3px] border-paper p-6 [--card-hover-border:var(--green-light)]">
               <p className="font-heading text-sm font-bold uppercase tracking-widest text-green-light">
                 {dict.how.stepLabel} {i + 1}
               </p>

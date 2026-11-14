@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -57,6 +57,21 @@ export function ResultsClient({ locale, initial }: { locale: Locale; initial: An
     };
   }, [finished, row.id]);
 
+  // The page language decides the explanation language: if this analysis was written in the
+  // other language, start one in the page language (once) and switch to it.
+  const wrongLanguage = row.status === "done" && row.lang !== locale;
+  const switching = useRef(false);
+  useEffect(() => {
+    if (!wrongLanguage || switching.current) return;
+    switching.current = true;
+    startAnalysis(locale, row.field_id)
+      .then((id) => router.replace(`/${locale}/dashboard/results/${id}`))
+      .catch((err) => {
+        switching.current = false;
+        toast.error(`${t.startError} (${err instanceof Error ? err.message : "unknown"})`);
+      });
+  }, [wrongLanguage, locale, row.field_id, router, t.startError]);
+
   async function rerun(lang: Locale) {
     setBusy(true);
     try {
@@ -109,7 +124,13 @@ export function ResultsClient({ locale, initial }: { locale: Locale; initial: An
       )}
 
       {row.status === "done" && row.result && row.narrative && (
-        <Results row={row} locale={locale} t={t} busy={busy} onOtherLanguage={() => rerun(row.narrative?.lang === "ar" ? "en" : "ar")} />
+        wrongLanguage ? (
+          <p className="mt-10 border-[3px] border-ink bg-green-light p-8 font-heading text-xl font-bold shadow-brutal-lg" aria-live="polite">
+            {t.switchingLanguage}
+          </p>
+        ) : (
+          <Results row={row} locale={locale} t={t} />
+        )
       )}
     </div>
   );
@@ -231,14 +252,10 @@ function Results({
   row,
   locale,
   t,
-  busy,
-  onOtherLanguage,
 }: {
   row: AnalysisRow;
   locale: Locale;
   t: ResultsStrings;
-  busy: boolean;
-  onOtherLanguage: () => void;
 }) {
   const pack = row.result!;
   const narrative = row.narrative!;
@@ -269,17 +286,35 @@ function Results({
               )}
             </span>
           )}
-          <button
-            type="button"
-            onClick={onOtherLanguage}
-            disabled={busy}
-            lang={narrative.lang === "ar" ? "en" : "ar"}
-            className="border-2 border-ink bg-paper px-3 py-1 font-bold hover:bg-ink hover:text-paper disabled:opacity-60"
-          >
-            {busy ? t.retrying : narrative.lang === "ar" ? "Show in English" : "عرض بالعربية"}
-          </button>
         </div>
       </section>
+
+      {narrative.conclusion && (
+        <section
+          className="border-[5px] border-ink bg-paper p-6 shadow-brutal-lg md:p-10"
+          dir={textDir}
+          aria-labelledby="summary-title"
+        >
+          <h2 id="summary-title" className="font-heading text-2xl font-bold uppercase md:text-3xl">
+            {t.summaryTitle}
+          </h2>
+          <p className="mt-4 text-lg font-bold md:text-xl">{narrative.conclusion.headline}</p>
+          <ol className="mt-5 space-y-3">
+            {narrative.conclusion.steps.map((step, i) => (
+              <li key={i} className="flex gap-3">
+                <span
+                  aria-hidden
+                  className="flex size-8 shrink-0 items-center justify-center border-2 border-ink bg-green-dark font-bold text-paper"
+                >
+                  {i + 1}
+                </span>
+                <span className="pt-1">{step}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-6 border-s-8 border-green-dark bg-green-light p-4 font-bold">{narrative.conclusion.check}</p>
+        </section>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-2">
         {ordered.map((s) => (
@@ -304,6 +339,12 @@ function Results({
                 {t.layerNames[id] ?? id}
               </li>
             ))}
+            {!pack.data_quality.layers_used.includes("smap") &&
+              ["requested", "processing"].includes(pack.observations.satellite?.state ?? "") && (
+                <li className="border-2 border-dashed border-ink px-2 py-1 text-sm">
+                  <span className="font-bold">{t.layerNames.smap}</span> · {t.pendingLayer}
+                </li>
+              )}
           </ul>
         </section>
       )}
