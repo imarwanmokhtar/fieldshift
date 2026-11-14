@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { isLocale, type Locale } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { BrandMark } from "@/components/brand-mark";
 
 // Auth protection must block on the server; this segment is not prerenderable.
 export const instant = false;
@@ -35,9 +36,9 @@ export default async function OnboardingLayout({
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-5">
           <Link
             href={`/${locale}`}
-            className="font-heading text-xl font-bold uppercase tracking-tight hover:bg-ink hover:text-paper"
+            className="inline-flex items-center gap-3 font-heading text-xl font-bold uppercase tracking-tight hover:bg-ink hover:text-paper"
           >
-            Field Shift
+            <BrandMark />
           </Link>
           <LanguageSwitcher current={locale} />
         </div>

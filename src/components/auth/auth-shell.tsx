@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import type { Dictionary, Locale } from "@/lib/i18n";
+import { BrandMark } from "@/components/brand-mark";
 
 /**
  * Shared brutalist frame for the /login and /signup pages.
@@ -25,9 +26,9 @@ export function AuthShell({
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-5">
           <Link
             href={`/${locale}`}
-            className="font-heading text-xl font-bold uppercase tracking-tight hover:bg-ink hover:text-paper"
+            className="inline-flex items-center gap-3 font-heading text-xl font-bold uppercase tracking-tight hover:bg-ink hover:text-paper"
           >
-            Field Shift
+            <BrandMark />
           </Link>
           <div className="flex items-center gap-3">
             <LanguageSwitcher current={locale} />

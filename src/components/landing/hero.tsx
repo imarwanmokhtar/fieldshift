@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BrutalButton } from "@/components/brutal-button";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import type { Dictionary, Locale } from "@/lib/i18n";
+import { BrandMark } from "@/components/brand-mark";
 
 export function Hero({ dict, locale }: { dict: Dictionary; locale: Locale }) {
   return (
@@ -10,9 +11,9 @@ export function Hero({ dict, locale }: { dict: Dictionary; locale: Locale }) {
         <nav className="flex items-center justify-between border-b-4 border-ink py-5">
           <Link
             href={`/${locale}`}
-            className="font-heading text-xl font-bold uppercase tracking-tight"
+            className="inline-flex items-center gap-3 font-heading text-xl font-bold uppercase tracking-tight"
           >
-            Field Shift
+            <BrandMark />
           </Link>
           <div className="flex items-center gap-3">
             <LanguageSwitcher current={locale} />
