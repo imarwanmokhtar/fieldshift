@@ -28,6 +28,10 @@ function optionLabel(questionId: string, value: unknown, locale: Locale): string
   return opt ? getLocalizedOption(opt, locale) : value;
 }
 
+// Signed-in page that reads per-user data on the server. `instant = false` on
+// the layout covers only the layout, so this page opts out too.
+export const instant = false;
+
 export default async function DashboardPage({
   params,
 }: {

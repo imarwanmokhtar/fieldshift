@@ -53,6 +53,7 @@ TEXTURES = {"clay": {"en": "clay", "ar": "طينية"}, "loam": {"en": "loamy", 
 
 STRATEGY_NAMES = {
     "current": {"en": "Your current rotation", "ar": "دورتك الحالية"},
+    "practice": {"en": "Same crops, better practices", "ar": "نفس المحاصيل بممارسات أفضل"},
     "soil": {"en": "Soil-building rotation", "ar": "دورة لتحسين التربة"},
     "water": {"en": "Water-saving rotation", "ar": "دورة لتوفير المياه"},
     "income": {"en": "Income-focused rotation", "ar": "دورة لزيادة الدخل"},
@@ -79,6 +80,15 @@ T: dict[str, dict[str, str]] = {
                  "ar": "يضيف {crop} النيتروجين إلى التربة من الهواء."},
     "gaez": {"en": "Estimated suitability of {crop} for this area: {score} out of 100.",
              "ar": "مدى ملاءمة {crop} لهذه المنطقة تقديرياً: {score} من 100."},
+    "practice_laser_leveling": {
+        "en": "Laser land levelling: fields levelled this way are reported to use about {low}–{high}% less irrigation water. We count only {low}%.",
+        "ar": "تسوية الأرض بالليزر: تشير التقارير إلى أن الحقول المسواة بهذه الطريقة تستهلك مياه ري أقل بحوالي {low}–{high}%. احتسبنا {low}% فقط."},
+    "practice_raised_beds": {
+        "en": "Raised-bed wheat: planting wheat on beds is reported to use about {low}–{high}% less irrigation water. We count only {low}%.",
+        "ar": "زراعة القمح على مصاطب: تشير التقارير إلى أنها تستهلك مياه ري أقل بحوالي {low}–{high}%. احتسبنا {low}% فقط."},
+    "practice_awd_rice": {
+        "en": "Alternate wetting and drying for rice: letting the field dry briefly between floodings is reported to use about {low}–{high}% less water. We count only {low}%.",
+        "ar": "الري بالتبادل للأرز: ترك الحقل يجف قليلاً بين الريات يستهلك مياهاً أقل بحوالي {low}–{high}% حسب التقارير. احتسبنا {low}% فقط."},
     "pest_break": {"en": "{crop} after {prev} breaks the pest and disease cycle.",
                    "ar": "زراعة {crop} بعد {prev} تكسر دورة الآفات والأمراض."},
     "ndvi_bare": {"en": "Satellite images show the field bare about {days} days a year.",
@@ -102,6 +112,10 @@ T: dict[str, dict[str, str]] = {
     "less_heat": {"en": "Fewer days of heat stress than your current rotation.",
                   "ar": "أيام إجهاد حراري أقل من دورتك الحالية."},
     # gaps
+    "practice_values_unverified": {"en": "Water savings from these practices are general reported ranges, not measured on your field yet.",
+                                   "ar": "توفير المياه من هذه الممارسات نطاقات عامة منشورة، ولم يُقس في حقلك بعد."},
+    "practice_awd_rice_skipped_salt": {"en": "Alternate wetting and drying for rice was left out because you reported salt: letting the field dry can bring salt up.",
+                                       "ar": "لم نقترح الري بالتبادل للأرز لأنك ذكرت وجود ملوحة: جفاف الحقل قد يرفع الأملاح إلى السطح."},
     "unknown_answers": {"en": "Some answers were skipped: {items}.", "ar": "بعض الأسئلة لم تتم الإجابة عنها: {items}."},
     "no_soil_test": {"en": "There is no soil test, so soil nutrients are estimated.",
                      "ar": "لا يوجد تحليل للتربة، لذلك تم تقدير عناصر التربة."},
@@ -146,6 +160,12 @@ T: dict[str, dict[str, str]] = {
                         "ar": "يحتاج {crop} عادة إلى آلات، وقد ذكرت أنك تعتمد على العمل اليدوي فقط."},
     "cereal_after_cereal": {"en": "Several cereals in a row can tire the soil and carry over pests.",
                             "ar": "زراعة الحبوب وراء بعضها قد تُجهد التربة وتنقل الآفات."},
+    "practice_laser_leveling_service": {"en": "Laser levelling needs a tractor and a laser unit, usually hired as a service.",
+                                        "ar": "تسوية الأرض بالليزر تحتاج إلى جرار وجهاز ليزر، وعادة تُستأجر كخدمة."},
+    "practice_raised_beds_service": {"en": "Raised beds need a bed-forming planter, which you may need to hire.",
+                                     "ar": "زراعة المصاطب تحتاج إلى آلة تشكيل مصاطب، وقد تحتاج إلى استئجارها."},
+    "practice_awd_rice_care": {"en": "With alternate wetting and drying, keep the field flooded during flowering, and check the water level before each irrigation.",
+                               "ar": "عند الري بالتبادل، حافظ على غمر الحقل وقت التزهير، وافحص مستوى المياه قبل كل رية."},
     # data quality notes
     "note_climate_resolution": {"en": "Climate data covers an area of about 50 km, so it describes the local climate, not your exact field.",
                                 "ar": "بيانات المناخ تغطي مساحة حوالي 50 كم، لذا فهي تصف مناخ المنطقة وليس حقلك بالتحديد."},
@@ -166,6 +186,8 @@ T: dict[str, dict[str, str]] = {
                 "ar": "{name}: {sequence}. الدرجة الكلية {overall} من 100، ودرجة الثقة {confidence}."},
     "why_current": {"en": "This is what you grow now. We use it as the starting point for comparison.",
                     "ar": "هذا ما تزرعه الآن، ونستخدمه كنقطة بداية للمقارنة."},
+    "why_practice": {"en": "Suggested because it keeps the crops you know and saves water by changing how they are grown.",
+                     "ar": "مقترحة لأنها تحافظ على المحاصيل التي تعرفها وتوفر المياه بتغيير طريقة زراعتها."},
     "why_soil": {"en": "Suggested because it improves the soil the most.", "ar": "مقترحة لأنها تحسن التربة أكثر من غيرها."},
     "why_water": {"en": "Suggested because it uses the least water.", "ar": "مقترحة لأنها تستهلك أقل كمية من المياه."},
     "why_income": {"en": "Suggested because it has the highest expected income.", "ar": "مقترحة لأن دخلها المتوقع هو الأعلى."},

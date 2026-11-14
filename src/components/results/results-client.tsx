@@ -15,6 +15,11 @@ import { startAnalysis } from "./start-analysis";
 
 const POLL_MS = 2000;
 const SLOW_AFTER_MS = 90_000;
+// A run nobody picked up, or one that stopped reporting progress, is treated as stuck.
+const STALLED_PENDING_MS = 60_000;
+const STALLED_RUNNING_MS = 180_000;
+// Stage names written by older engine versions.
+const LEGACY_STAGES: Record<string, string> = { reading_data: "fetching_climate", comparing: "scoring" };
 const CRITERIA_ORDER: Criterion[] = ["water", "soil", "income", "heat", "cost", "risk", "forage"];
 
 function cropLabel(crop: string, locale: Locale, t: ResultsStrings) {
@@ -31,6 +36,8 @@ export function ResultsClient({ locale, initial }: { locale: Locale; initial: An
   const [busy, setBusy] = useState(false);
 
   const finished = row.status === "done" || row.status === "failed";
+  const now = useNow(finished ? null : 1000);
+  const stalled = !finished && isStalled(row, now);
 
   useEffect(() => {
     if (finished) return;
@@ -38,7 +45,7 @@ export function ResultsClient({ locale, initial }: { locale: Locale; initial: An
     const timer = setInterval(async () => {
       const { data } = await supabase
         .from("analyses")
-        .select("id,status,stage,lang,result,narrative,error,created_at")
+        .select("id,status,stage,lang,result,narrative,error,created_at,updated_at")
         .eq("id", row.id)
         .maybeSingle();
       if (data) setRow(data as AnalysisRow);
@@ -73,7 +80,21 @@ export function ResultsClient({ locale, initial }: { locale: Locale; initial: An
         </Link>
       </div>
 
-      {!finished && <Progress t={t} stage={row.stage ?? "pending"} slow={slow} />}
+      {!finished && !stalled && (
+        <Progress t={t} stage={row.stage ?? "pending"} createdAt={row.created_at} now={now} slow={slow} />
+      )}
+
+      {stalled && (
+        <div role="alert" className="mt-10 border-[3px] border-ink bg-paper p-8 shadow-brutal-lg">
+          <p className="font-heading text-xl font-bold uppercase md:text-2xl">{t.stalledTitle}</p>
+          <p className="mt-3 max-w-2xl">{row.status === "pending" ? t.stalledPending : t.stalledRunning}</p>
+          <div className="mt-6">
+            <BrutalButton variant="dark" onClick={() => rerun(locale)} disabled={busy}>
+              {busy ? t.retrying : t.retry}
+            </BrutalButton>
+          </div>
+        </div>
+      )}
 
       {row.status === "failed" && (
         <div role="alert" className="mt-10 border-[3px] border-ink bg-paper p-8 shadow-brutal-lg">
@@ -94,24 +115,114 @@ export function ResultsClient({ locale, initial }: { locale: Locale; initial: An
   );
 }
 
-function Progress({ t, stage, slow }: { t: ResultsStrings; stage: string; slow: boolean }) {
-  const steps = ["reading_data", "comparing", "writing"];
-  const idx = Math.max(0, steps.indexOf(stage));
-  const pct = stage === "pending" ? 8 : ((idx + 1) / (steps.length + 1)) * 100;
+function useNow(intervalMs: number | null) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (intervalMs === null) return;
+    const timer = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(timer);
+  }, [intervalMs]);
+  return now;
+}
+
+function isStalled(row: AnalysisRow, now: number) {
+  if (row.status === "pending") return now - Date.parse(row.created_at) > STALLED_PENDING_MS;
+  const last = Date.parse(row.updated_at ?? row.created_at);
+  return row.status === "running" && now - last > STALLED_RUNNING_MS;
+}
+
+function formatElapsed(ms: number) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
+}
+
+function Progress({
+  t,
+  stage: rawStage,
+  createdAt,
+  now,
+  slow,
+}: {
+  t: ResultsStrings;
+  stage: string;
+  createdAt: string;
+  now: number;
+  slow: boolean;
+}) {
+  const stage = LEGACY_STAGES[rawStage] ?? rawStage;
+  const steps = t.steps;
+  const idx = Math.max(0, steps.findIndex((s) => s.id === stage));
+  const current = steps[idx];
+
+  // When did this stage start (client clock)? Used to keep the bar creeping
+  // inside the current step, so a long step never looks frozen.
+  const [stageStart, setStageStart] = useState({ stage, at: now });
+  if (stageStart.stage !== stage) setStageStart({ stage, at: now });
+  const inStep = 1 - Math.exp(-(now - stageStart.at) / 15_000); // 0 → 1, never reaches 1
+  const pct = Math.min(99, ((idx + 0.85 * inStep) / steps.length) * 100);
+
   return (
-    <div className="mt-10 border-[3px] border-ink bg-green-light p-8 shadow-brutal-lg" aria-live="polite">
-      <p className="font-heading text-xl font-bold md:text-2xl">{t.stages[stage] ?? t.stages.pending}</p>
+    <div className="mt-10 border-[3px] border-ink bg-green-light p-6 shadow-brutal-lg md:p-8" aria-live="polite">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm font-bold">
+        <span>{t.stepOf(idx + 1, steps.length)}</span>
+        <span className="font-mono tabular-nums opacity-80">{t.elapsed(formatElapsed(now - Date.parse(createdAt)))}</span>
+      </div>
+
+      <p className="mt-2 font-heading text-xl font-bold md:text-2xl">{current.title}…</p>
+
       <div
-        className="mt-6 h-4 w-full border-[3px] border-ink bg-paper shadow-brutal-xs"
+        className="mt-4 h-6 w-full border-[3px] border-ink bg-paper shadow-brutal-xs"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(pct)}
-        aria-label={t.stages[stage] ?? t.stages.pending}
+        aria-label={current.title}
       >
-        <div className="h-full bg-green-dark transition-[width] duration-700 motion-reduce:transition-none" style={{ width: `${pct}%` }} />
+        <div
+          className="progress-stripes h-full bg-green-dark transition-[width] duration-1000 ease-out motion-reduce:transition-none"
+          style={{ width: `${pct}%` }}
+        />
       </div>
-      {slow && <p className="mt-4">{t.slow}</p>}
+
+      <p key={current.id} className="mt-3 min-h-12 animate-in fade-in slide-in-from-bottom-1 duration-500">
+        {current.detail}
+      </p>
+
+      <ol className="mt-6 grid gap-2 sm:grid-cols-2">
+        {steps.map((step, i) => {
+          const state = i < idx ? "done" : i === idx ? "current" : "todo";
+          return (
+            <li
+              key={step.id}
+              className={cn(
+                "flex items-center gap-3 border-2 border-ink px-3 py-2 text-sm",
+                state === "done" && "bg-paper",
+                state === "current" && "bg-paper font-bold shadow-brutal-xs",
+                state === "todo" && "border-dashed opacity-60",
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  "flex size-6 shrink-0 items-center justify-center border-2 border-ink text-xs font-bold",
+                  state === "done" && "bg-green-dark text-paper",
+                  state === "current" && "animate-pulse bg-green-light motion-reduce:animate-none",
+                )}
+              >
+                {state === "done" ? "✓" : i + 1}
+              </span>
+              <span>{step.title}</span>
+              <span className="sr-only">
+                {state === "done" ? "(done)" : state === "current" ? "(in progress)" : ""}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+
+      {slow && <p className="mt-4 font-bold">{t.slow}</p>}
     </div>
   );
 }
@@ -248,6 +359,19 @@ function StrategyCard({
           </li>
         ))}
       </ol>
+
+      {s.practices && s.practices.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-bold uppercase opacity-70">{t.practicesLabel}</p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {s.practices.map((p) => (
+              <li key={p} className="border-2 border-ink bg-green-light px-2 py-1 text-sm font-bold shadow-brutal-xs">
+                {t.practices[p] ?? p.replace(/_/g, " ")}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="mt-5">
         <ScoreBar label={t.overall} value={s.scores.overall} big />

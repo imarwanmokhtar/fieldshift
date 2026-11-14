@@ -19,12 +19,30 @@ from .strategies import build_context, score_choice, select_strategies
 log = logging.getLogger(__name__)
 
 
-def _gather(profile, scenario: dict[str, float]):
+# Progress stages, in order. The results page shows one step per stage.
+STAGES = ("reading_profile", "fetching_climate", "computing_climate", "satellite_layers",
+          "scoring", "evidence", "writing", "saving")
+
+
+def _report(on_stage: Callable[[str], None] | None, stage: str) -> None:
+    """Report progress. A failed progress update must never fail the analysis."""
+    if not on_stage:
+        return
+    try:
+        on_stage(stage)
+    except Exception:
+        log.warning("could not report stage %s", stage, exc_info=True)
+
+
+def _gather(profile, scenario: dict[str, float], on_stage: Callable[[str], None] | None = None):
+    _report(on_stage, "fetching_climate")
     climate = load_climate(profile.lat, profile.lng)
+    _report(on_stage, "computing_climate")
     df = apply_scenario(climate.df, scenario.get("temp_delta_c", 0.0), scenario.get("rain_factor", 1.0))
     clim = climate_features(df, profile.lat)
 
     used, mocked, unavailable = [], [], []
+    _report(on_stage, "satellite_layers")
     (used if climate.source == "nasa_power" else unavailable).append("nasa_power")
 
     nd = ndvi_client.fetch_ndvi(profile.lat, profile.lng)
@@ -59,12 +77,13 @@ def analyze_answers(answers: dict[str, Any], lang: str = "en",
     scenario = {"temp_delta_c": float((scenario or {}).get("temp_delta_c", 0.0)),
                 "rain_factor": float((scenario or {}).get("rain_factor", 1.0))}
     profile = parse_profile(answers)
-    climate, clim, nfeat, gaez, used, mocked, unavailable = _gather(profile, scenario)
+    climate, clim, nfeat, gaez, used, mocked, unavailable = _gather(profile, scenario, on_stage)
+    _report(on_stage, "scoring")
     ctx = build_context(profile, clim, gaez=gaez, gaez_source="gaez" if gaez else "approx")
     strategies, recommended = select_strategies(ctx)
+    _report(on_stage, "evidence")
     pack = build_pack(ctx, climate, clim, strategies, recommended, nfeat, used, mocked, unavailable, scenario)
-    if on_stage:
-        on_stage("writing")
+    _report(on_stage, "writing")
     return pack, narrate(pack, lang)
 
 
@@ -96,16 +115,16 @@ def run_analysis(analysis_id: str, user_id: str, lang: str | None = None) -> Non
             log.error("analysis %s not found for user", analysis_id)
             return
         lang = lang or row.get("lang") or "ar"
-        db.update_analysis(analysis_id, status="running", stage="reading_data", error=None)
+        db.update_analysis(analysis_id, status="running", stage="reading_profile", error=None)
 
         profile_row = db.get_profile(user_id)
         if not profile_row or profile_row.get("user_id") != user_id:
             raise ProfileError("Farm setup not found. Please finish the onboarding questions.")
 
-        db.update_analysis(analysis_id, stage="comparing")
         scenario = row.get("scenario") or None
         pack, narrative = analyze_answers(profile_row.get("answers") or {}, lang, scenario,
                                           on_stage=lambda st: db.update_analysis(analysis_id, stage=st))
+        _report(lambda st: db.update_analysis(analysis_id, stage=st), "saving")
 
         db.update_analysis(analysis_id, status="done", stage="done",
                            result=pack.model_dump(mode="json"), narrative=narrative.model_dump(mode="json"))

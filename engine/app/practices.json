@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "verified": false,
+    "note": "ILLUSTRATIVE values (TODO-verify). water_saving_pct is the range of irrigation-water savings commonly reported for each practice under surface irrigation; it is NOT a measurement for this field. Scoring uses only the LOW end of each range, so the benefit is not overstated. Have an agronomist or extension officer confirm each range for Egyptian conditions before relying on it.",
+    "sources_to_check": [
+      "ICARDA / ARC Egypt raised-bed wheat trials (Nile Delta)",
+      "IRRI: Alternate Wetting and Drying (AWD) guidance for irrigated rice",
+      "FAO and Egyptian Ministry of Water Resources and Irrigation reports on laser land levelling"
+    ]
+  },
+  "laser_leveling": {
+    "name_en": "Laser land levelling",
+    "name_ar": "تسوية الأرض بالليزر",
+    "crops": "all",
+    "surface_irrigation_only": true,
+    "water_saving_pct": [15, 25],
+    "needs_equipment": ["tractor"],
+    "service_note": "usually hired as a service; repeated every few years"
+  },
+  "raised_beds": {
+    "name_en": "Raised-bed planting for wheat",
+    "name_ar": "زراعة القمح على مصاطب",
+    "crops": ["wheat"],
+    "surface_irrigation_only": true,
+    "water_saving_pct": [20, 30],
+    "needs_equipment": ["planter"],
+    "service_note": "needs a bed-forming planter, which can often be hired"
+  },
+  "awd_rice": {
+    "name_en": "Alternate wetting and drying (AWD) for rice",
+    "name_ar": "الري بالتبادل بين الغمر والتجفيف للأرز",
+    "crops": ["rice"],
+    "surface_irrigation_only": false,
+    "water_saving_pct": [15, 30],
+    "needs_equipment": [],
+    "skip_if_salinity": true,
+    "service_note": "the farmer checks the water level in a simple field tube before each irrigation"
+  }
+}

@@ -21,8 +21,9 @@ class Settings:
     ENGINE_API_KEY: str = field(default_factory=lambda: _env("ENGINE_API_KEY"))
     SUPABASE_URL: str = field(default_factory=lambda: _env("SUPABASE_URL").rstrip("/"))
     SUPABASE_SERVICE_ROLE_KEY: str = field(default_factory=lambda: _env("SUPABASE_SERVICE_ROLE_KEY"))
-    # LLM provider: "openrouter", "gemini" or "anthropic". Empty = picked automatically from whichever key is set.
+    # LLM provider: "groq", "openrouter", "gemini" or "anthropic". Empty = picked automatically from whichever key is set.
     LLM_PROVIDER: str = field(default_factory=lambda: _env("LLM_PROVIDER").lower())
+    GROQ_API_KEY: str = field(default_factory=lambda: _env("GROQ_API_KEY"))
     OPENROUTER_API_KEY: str = field(default_factory=lambda: _env("OPENROUTER_API_KEY"))
     GEMINI_API_KEY: str = field(default_factory=lambda: _env("GEMINI_API_KEY"))
     ANTHROPIC_API_KEY: str = field(default_factory=lambda: _env("ANTHROPIC_API_KEY"))

@@ -200,3 +200,25 @@ html[lang="ar"] * {
     transition: none;
   }
 }
+/* Moving diagonal stripes on the analysis progress bar, so it reads as "working". */
+.progress-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 10px,
+    rgb(255 255 255 / 0.18) 10px 20px
+  );
+  background-size: 28.28px 28.28px;
+  animation: progress-stripes 1s linear infinite;
+}
+
+@keyframes progress-stripes {
+  to {
+    background-position: 28.28px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-stripes {
+    animation: none;
+  }
+}

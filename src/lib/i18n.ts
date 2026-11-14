@@ -81,14 +81,9 @@ const en = {
       "Local agricultural experts should review before decisions are made.",
     ],
   },
-  pilot: {
-    label: "Pilot region",
-    name: "Dakahlia, Egypt",
-    body: "Dakahlia sits in the Nile Delta, one of Egypt's most productive agricultural governorates. Intensive rotation cycles, rising heat and pressure on water make it exactly the kind of place where rotation decisions deserve better evidence.",
-  },
   footer: {
     name: "Field Shift",
-    line: "NASA Space Apps Challenge 2026 · Built by the Field Shift team",
+    line: "NASA Space Apps Challenge 2026 · Built by Kemet Nova",
     note: "NASA does not endorse this project. Field Shift uses data and concepts from NASA Earth observation missions and Space Agency Partner resources; participants follow the data use terms of each source.",
     login: "Log in",
     signup: "Sign up",
@@ -209,14 +204,9 @@ const ar: Dictionary = {
       "ينبغي أن يراجع الخبراء الزراعيون المحليون قبل اتخاذ القرار.",
     ],
   },
-  pilot: {
-    label: "المنطقة التجريبية",
-    name: "الدقهلية، مصر",
-    body: "تقع الدقهلية في دلتا النيل، وهي من أكثر محافظات مصر إنتاجًا زراعيًا. فدورات التدوير المكثفة وارتفاع الحرارة والضغط على المياه تجعلها من النوع من الأماكن الذي تستحق فيه قرارات تدوير المحاصيل أدلةً أفضل.",
-  },
   footer: {
     name: "Field Shift",
-    line: "تحدي NASA Space Apps 2026 · بُني بواسطة فريق Field Shift",
+    line: "تحدي NASA Space Apps 2026 · بُني بواسطة Kemet Nova",
     note: "NASA لا تؤيد هذا المشروع. يستخدم Field Shift بيانات ومفاهيم من مهمات رصد الأرض التابعة لـ NASA وموارد شركاء وكالات الفضاء، ويلتزم المشاركون بشروط استخدام البيانات لكل مصدر.",
     login: "تسجيل الدخول",
     signup: "إنشاء حساب",

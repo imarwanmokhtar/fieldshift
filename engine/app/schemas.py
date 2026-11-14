@@ -101,7 +101,7 @@ class CropMetrics(BaseModel):
 
 class Strategy(BaseModel):
     id: str
-    kind: Literal["current", "soil", "water", "income", "fodder", "balanced", "custom"]
+    kind: Literal["current", "practice", "soil", "water", "income", "fodder", "balanced", "custom"]
     name: str
     name_ar: str
     sequence: list[str]          # e.g. ["wheat (winter)", "rice (summer)", ...]
@@ -115,6 +115,7 @@ class Strategy(BaseModel):
     confidence: Confidence
     confidence_score: int
     changes_from_current: int
+    practices: list[str] = Field(default_factory=list)   # practice ids (practice options only)
 
 
 # ---------------------------------------------------------------- pack

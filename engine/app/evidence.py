@@ -26,6 +26,8 @@ def confidence_for(st: Strategy, profile: FarmProfile, climate_source: str, ndvi
     score -= 5 * len(mocked)
     score -= 10                                      # crop table not yet verified locally
     score -= 3 * sum(1 for r in st.risks if r.code == "new_crop")
+    if st.practices:
+        score -= 5                                   # practice water savings are general ranges, not verified
     if history_assumed:
         score -= 10
     score = max(5, min(95, score))

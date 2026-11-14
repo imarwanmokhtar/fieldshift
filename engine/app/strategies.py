@@ -12,6 +12,7 @@ import itertools
 from dataclasses import dataclass, field
 
 from .features import CROPS, ClimateFeatures, crop_metrics, crop_season_dates
+from .practices import PRACTICES, applicable_practices, missing_equipment, water_factors
 from .schemas import CRITERIA, CropMetrics, FarmProfile, Fact, Slot, Strategy
 from .texts import STRATEGY_NAMES, fact
 
@@ -158,14 +159,22 @@ class Scored:
     gaps: list[Fact]
     risks: list[Fact]
     changes: int
+    practices: list[str] = field(default_factory=list)
 
 
 def _clamp(x: float) -> int:
     return int(round(max(0.0, min(100.0, x))))
 
 
-def score_rotation(rot: tuple[str, str, str, str], ctx: Context) -> Scored:
+def score_rotation(rot: tuple[str, str, str, str], ctx: Context,
+                   water_factor: dict[str, float] | None = None) -> Scored:
+    """Score a rotation. `water_factor` scales a crop's irrigation water (practice options)."""
     p = ctx.profile
+    wf = water_factor or {}
+
+    def gross(c: str) -> float:
+        return ctx.metrics[c].gross_m3_per_feddan * wf.get(c, 1.0)
+
     slots = [("winter", rot[0]), ("summer", rot[1]), ("winter", rot[2]), ("summer", rot[3])]
     crops = [c for _, c in slots if c != "fallow"]
     m = ctx.metrics
@@ -173,7 +182,7 @@ def score_rotation(rot: tuple[str, str, str, str], ctx: Context) -> Scored:
     risks: list[Fact] = []
 
     # --- water (m3 per feddan per year, averaged over the two years)
-    water_m3 = sum(m[c].gross_m3_per_feddan for c in crops) / 2
+    water_m3 = sum(gross(c) for c in crops) / 2
     water = _clamp(100 * (1 - water_m3 / WATER_SCALE_M3))
     evidence.append(fact("water_total", m3=int(round(water_m3, -1))))
 
@@ -268,7 +277,7 @@ def score_rotation(rot: tuple[str, str, str, str], ctx: Context) -> Scored:
                     risks.append(fact("salt_sensitive", crop=c))
     if p.water_reliability in ("often_late", "rarely"):
         for c in uniq:
-            if m[c].gross_m3_per_feddan > 5000:
+            if gross(c) > 5000:
                 risk -= 10
                 risks.append(fact("water_unreliable", crop=c))
     for c in uniq:
@@ -304,7 +313,7 @@ def score_rotation(rot: tuple[str, str, str, str], ctx: Context) -> Scored:
 
     # --- crop-level evidence
     for c in uniq:
-        evidence.append(fact("crop_water", crop=c, season=CROPS[c]["season"], m3=int(round(m[c].gross_m3_per_feddan, -1))))
+        evidence.append(fact("crop_water", crop=c, season=CROPS[c]["season"], m3=int(round(gross(c), -1))))
         if CROPS[c]["n_fixing"]:
             evidence.append(fact("n_fixing", crop=c))
         suit = ctx.gaez.get(c, CROPS[c]["gaez_suitability_approx"])
@@ -367,7 +376,7 @@ def _compare_facts(s: Scored, base: Scored, ctx: Context) -> list[Fact]:
 
 def _water_vs_current(s: Scored, base: Scored) -> Fact | None:
     bw, sw = base.metrics["water_m3_per_feddan_year"], s.metrics["water_m3_per_feddan_year"]
-    if s.rot == base.rot or bw <= 0:
+    if (s.rot == base.rot and not s.practices) or bw <= 0:
         return None
     pct = int(round(abs(sw - bw) / bw * 100))
     if pct < 3:
@@ -421,8 +430,8 @@ def _to_strategy(kind: str, s: Scored, base: Scored, ctx: Context, idx: int) -> 
         name=STRATEGY_NAMES[kind]["en"], name_ar=STRATEGY_NAMES[kind]["ar"],
         sequence=[f"{c} ({season})" for season, c in pairs],
         slots=slots, scores=s.scores, metrics=s.metrics,
-        evidence=evidence, benefits=_compare_facts(s, base, ctx), gaps=[], risks=_dedupe(s.risks),
-        confidence="medium", confidence_score=0, changes_from_current=s.changes,
+        evidence=evidence, benefits=_compare_facts(s, base, ctx), gaps=list(s.gaps), risks=_dedupe(s.risks),
+        confidence="medium", confidence_score=0, changes_from_current=s.changes, practices=list(s.practices),
     )
 
 
@@ -431,6 +440,9 @@ def select_strategies(ctx: Context) -> tuple[list[Strategy], str]:
     base = score_rotation(cur_rot, ctx)
     cands = [c for c in candidate_rotations(ctx) if c.rot != cur_rot]
     chosen: list[tuple[str, Scored]] = [("current", base)]
+    practice = practice_option(ctx, cur_rot)
+    if practice is not None:
+        chosen.append(("practice", practice))
 
     def canon(rot: tuple[str, str, str, str]) -> tuple:
         # The same two years in the opposite order is the same rotation.
@@ -443,7 +455,8 @@ def select_strategies(ctx: Context) -> tuple[list[Strategy], str]:
         if not pool:
             return
         best = max(pool, key=key)
-        if kind == "balanced" and any(best.scores["overall"] <= s.scores["overall"] for k, s in chosen if k != "current"):
+        if kind == "balanced" and any(best.scores["overall"] <= s.scores["overall"]
+                                      for k, s in chosen if k not in ("current", "practice")):
             return   # an option already shown is at least as good overall: no need for a 4th card
         chosen.append((kind, best))
         used.add(canon(best.rot))
@@ -460,6 +473,33 @@ def select_strategies(ctx: Context) -> tuple[list[Strategy], str]:
     strategies = [_to_strategy(kind, s, base, ctx, i) for i, (kind, s) in enumerate(chosen)]
     recommended = max(strategies, key=lambda st: (st.scores["overall"], st.kind == "current"))
     return strategies, recommended.id
+
+
+def practice_option(ctx: Context, rot: tuple[str, str, str, str]) -> Scored | None:
+    """The same rotation grown with the water-saving practices that fit this field.
+
+    Returns None when no practice applies (e.g. drip irrigation and no rice).
+    """
+    crops = {c for c in rot if c != "fallow"}
+    ids, skipped_salt = applicable_practices(ctx.profile, crops, _salinity_level(ctx.profile))
+    if not ids:
+        return None
+    sc = score_rotation(rot, ctx, water_factors(ids, crops))
+    sc.practices = ids
+    practice_facts = []
+    for pid in ids:
+        lo, hi = PRACTICES[pid]["water_saving_pct"]
+        practice_facts.append(fact(f"practice_{pid}", low=lo, high=hi))
+        if missing_equipment(pid, ctx.profile.equipment):
+            sc.risks.append(fact(f"practice_{pid}_service"))
+    # Keep the total-water line first (the 'less than current' line is inserted after it).
+    sc.evidence = sc.evidence[:1] + practice_facts + sc.evidence[1:]
+    if "awd_rice" in ids:
+        sc.risks.append(fact("practice_awd_rice_care"))
+    for pid in skipped_salt:
+        sc.gaps.append(fact(f"practice_{pid}_skipped_salt"))
+    sc.gaps.append(fact("practice_values_unverified"))
+    return sc
 
 
 def score_choice(ctx: Context, crop: str, season: str | None = None) -> Strategy:

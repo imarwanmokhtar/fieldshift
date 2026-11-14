@@ -93,11 +93,39 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
 
     // Show summary when on the last step and user clicks Next/Finish
     const shouldShowSummary = currentStep >= TOTAL_QUESTIONS;
+    const onQuestion = !shouldShowSummary && !showSummary;
+
+    // Enter = Next (or Finish on the last question). Enter keeps its own meaning on
+    // links and on controls marked data-enter-native (Back, Skip). On answer tiles it
+    // also means Next, so it never un-ticks a choice; Space still selects a tile.
+    // Backspace = Back, except while typing in a field (there it deletes text).
+    useEffect(() => {
+        if (!onQuestion) return;
+        function onKeyDown(e: KeyboardEvent) {
+            if (e.repeat || e.isComposing || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+            const target = e.target as HTMLElement | null;
+            if (e.key === "Backspace") {
+                if (target?.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])")) return;
+                e.preventDefault();
+                if (!isFirstStep) handleBack();
+                return;
+            }
+            if (e.key !== "Enter") return;
+            if (target?.closest("a, textarea, [data-enter-native]")) return;
+            e.preventDefault();
+            if (!canGoNext || isSaving) return;
+            if (isLastStep) setShowSummary(true);
+            else handleNext();
+        }
+        // Capture phase: runs before any element can handle or stop the key.
+        window.addEventListener("keydown", onKeyDown, true);
+        return () => window.removeEventListener("keydown", onKeyDown, true);
+    }, [onQuestion, canGoNext, isSaving, isLastStep, isFirstStep, handleNext, handleBack]);
 
     return (
         <div className="min-h-screen bg-paper">
             <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
-                {!shouldShowSummary && !showSummary && (
+                {onQuestion && (
                     <>
                         <ProgressHeader
                             currentStep={currentStep}
@@ -235,14 +263,16 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
 
                         {/* Action Bar */}
                         <div className="mt-8 flex gap-3">
-                            <BrutalButton
-                                variant="paper"
-                                onClick={handleBack}
-                                disabled={isFirstStep}
-                                className="flex-1"
-                            >
-                                {locale === "ar" ? "رجوع" : "Back"}
-                            </BrutalButton>
+                            <div data-enter-native className="flex flex-1">
+                                <BrutalButton
+                                    variant="paper"
+                                    onClick={handleBack}
+                                    disabled={isFirstStep}
+                                    className="flex-1"
+                                >
+                                    {locale === "ar" ? "رجوع" : "Back"}
+                                </BrutalButton>
+                            </div>
                             {isLastStep ? (
                                 <BrutalButton
                                     variant="dark"
@@ -264,11 +294,19 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                             )}
                         </div>
 
+                        {/* Keyboard shortcuts (handled by the keydown effect above) */}
+                        <p className="mt-3 hidden text-center font-mono text-xs opacity-60 sm:block" data-kb-hint>
+                            {locale === "ar"
+                                ? "Enter ↵ التالي · Backspace ⌫ رجوع"
+                                : "Enter ↵ Next · Backspace ⌫ Back"}
+                        </p>
+
                         {/* Skip button for optional questions */}
                         {(currentQuestion.allowUnknown ?? true) && !currentQuestion.required && (
                             <div className="mt-4 text-center">
                                 <button
                                     type="button"
+                                    data-enter-native
                                     onClick={() => {
                                         updateAnswer(currentQuestion.id, "unknown");
                                         handleNext();

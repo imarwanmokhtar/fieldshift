@@ -4,6 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { isLocale, type Locale } from "@/lib/i18n";
 import { OnboardingClient } from "./onboarding-client";
 
+// Signed-in page that reads per-user data on the server. `instant = false` on
+// the layout covers only the layout, so this page opts out too.
+export const instant = false;
+
 export default async function OnboardingPage({
   params,
 }: {

@@ -17,7 +17,7 @@ export interface Slot {
 
 export interface Strategy {
   id: string;
-  kind: "current" | "soil" | "water" | "income" | "fodder" | "balanced" | "custom";
+  kind: "current" | "practice" | "soil" | "water" | "income" | "fodder" | "balanced" | "custom";
   name: string;
   name_ar: string;
   sequence: string[];
@@ -31,6 +31,8 @@ export interface Strategy {
   confidence: "high" | "medium" | "low";
   confidence_score: number;
   changes_from_current: number;
+  /** Water-saving practice ids (practice options only), e.g. "laser_leveling". */
+  practices?: string[];
 }
 
 export interface EvidencePack {
@@ -85,4 +87,5 @@ export interface AnalysisRow {
   narrative: Narrative | null;
   error: string | null;
   created_at: string;
+  updated_at?: string;
 }

@@ -5,7 +5,7 @@ Guardrails:
 - Number check: every number in the generated text must already appear in the pack.
   On failure we retry once, then fall back to template text built from the same pack.
 - Only the evidence pack is sent (no email, no user id). Results are cached by pack hash.
-- Provider: OpenRouter (OPENROUTER_API_KEY), Gemini (GEMINI_API_KEY) or Claude (ANTHROPIC_API_KEY); see settings.LLM_PROVIDER.
+- Provider: Groq (GROQ_API_KEY), OpenRouter (OPENROUTER_API_KEY), Gemini (GEMINI_API_KEY) or Claude (ANTHROPIC_API_KEY); see settings.LLM_PROVIDER.
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ from pydantic import ValidationError
 from .data import cache
 from .schemas import EvidencePack, Narrative, NarrativeOut, StrategyText
 from .settings import settings
+from .practices import PRACTICES
 from .texts import CONFIDENCE_NAMES, STRATEGY_NAMES, render, sequence_text
 
 log = logging.getLogger(__name__)
@@ -32,6 +33,9 @@ Write short, simple sentences with no jargon. If you use a technical term, expla
 For every strategy return: summary (2 sentences), why, evidence (list), benefits (list), gaps (list), risks (list).
 Keep every strategy id exactly as given. Keep the strategies in the same order.
 Mention uncertainty and the confidence level honestly. Do not oversell any option.
+A strategy with "practices" keeps the same crops and changes how they are grown. Its water savings are general
+reported ranges, not verified on this field: say so, never call them proven or documented, and never claim that
+income or yield stays the same or improves. Name each practice exactly as in "practices" (English) or "practices_ar" (Arabic).
 The "reminder" is one sentence telling the farmer to review the options with a local agricultural expert.
 Reply in the requested language (en = English, ar = simple Modern Standard Arabic that Egyptian farmers understand).
 Write numbers with Western digits (0-9), exactly as they appear in the DATA.
@@ -61,6 +65,8 @@ def llm_view(pack: EvidencePack) -> dict[str, Any]:
         "data_quality_notes": [n.text for n in pack.data_quality.notes],
         "strategies": [{
             "id": s.id, "name": s.name, "sequence": s.sequence,
+            **({"practices": [PRACTICES[p]["name_en"] for p in s.practices],
+                "practices_ar": [PRACTICES[p]["name_ar"] for p in s.practices]} if s.practices else {}),
             "scores_out_of_100": s.scores, "confidence": s.confidence,
             "evidence": [f.text for f in s.evidence], "benefits": [f.text for f in s.benefits],
             "gaps": [f.text for f in s.gaps], "risks": [f.text for f in s.risks],
@@ -139,9 +145,12 @@ def _strip_fences(raw: str) -> str:
     return raw[start:end + 1] if start != -1 and end != -1 else raw
 
 
-DEFAULT_MODELS = {"openrouter": "google/gemma-4-31b-it:free", "gemini": "gemini-3.8-flash", "anthropic": "claude-sonnet-5-5"}
+DEFAULT_MODELS = {"groq": "openai/gpt-oss-120b", "openrouter": "google/gemma-4-31b-it:free",
+                  "gemini": "gemini-3.8-flash", "anthropic": "claude-sonnet-5-5"}
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-KEY_FIELDS = {"openrouter": "OPENROUTER_API_KEY", "gemini": "GEMINI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+KEY_FIELDS = {"groq": "GROQ_API_KEY", "openrouter": "OPENROUTER_API_KEY", "gemini": "GEMINI_API_KEY",
+              "anthropic": "ANTHROPIC_API_KEY"}
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
@@ -152,7 +161,7 @@ def provider() -> str | None:
     chosen = getattr(settings, "LLM_PROVIDER", "") or ""
     if chosen in KEY_FIELDS:
         return chosen if has(chosen) else None
-    for p in ("openrouter", "gemini", "anthropic"):
+    for p in ("groq", "openrouter", "gemini", "anthropic"):
         if has(p):
             return p
     return None
@@ -235,17 +244,59 @@ def _call_gemini(content: str, model: str) -> str:
 
 
 def _call_openrouter(content: str, model: str) -> str:
-    """OpenRouter (OpenAI-compatible). The system prompt is sent inside the user message,
+    """OpenRouter. The system prompt is sent inside the user message,
     because some open models (e.g. Gemma) do not accept a separate system role."""
+    return _call_openai_compatible("openrouter", OPENROUTER_URL, settings.OPENROUTER_API_KEY, content, model,
+                                   {"HTTP-Referer": "https://fieldshift-one.vercel.app", "X-Title": "Field Shift"})
+
+
+def _call_groq(content: str, model: str) -> str:
+    """Groq (OpenAI-compatible), default model openai/gpt-oss-120b."""
+    return _call_openai_compatible("groq", GROQ_URL, settings.GROQ_API_KEY, content, model)
+
+
+def _call_openai_compatible(name: str, url: str, key: str, content: str, model: str,
+                            extra_headers: dict[str, str] | None = None) -> str:
+    """One chat-completions request to an OpenAI-compatible API (OpenRouter, Groq)."""
     import httpx
 
-    r = httpx.post(
-        OPENROUTER_URL,
+    for attempt in range(2):
+        r = _post_chat(url, key, content, model, extra_headers)
+        # Short per-minute rate limits (e.g. Groq's free tier): wait it out once, then retry.
+        wait = _retry_after_seconds(r) if r.status_code == 429 and attempt == 0 else None
+        if wait is None or wait > MAX_RATE_LIMIT_WAIT_S:
+            break
+        log.info("%s rate-limited, retrying in %.1fs", name, wait)
+        time.sleep(wait + 0.5)
+    return _parse_chat(name, r)
+
+
+MAX_RATE_LIMIT_WAIT_S = 20.0
+
+
+def _retry_after_seconds(r) -> float | None:
+    """Seconds to wait, from the Retry-After header or a 'try again in 4.5s' message."""
+    header = r.headers.get("retry-after")
+    try:
+        if header is not None:
+            return float(header)
+    except ValueError:
+        pass
+    m = re.search(r"try again in ([0-9.]+)(ms|s)", r.text)
+    if m:
+        return float(m.group(1)) / (1000 if m.group(2) == "ms" else 1)
+    return None
+
+
+def _post_chat(url: str, key: str, content: str, model: str, extra_headers: dict[str, str] | None):
+    import httpx
+
+    return httpx.post(
+        url,
         headers={
-            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+            "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://fieldshift-one.vercel.app",
-            "X-Title": "Field Shift",
+            **(extra_headers or {}),
         },
         json={
             "model": model,
@@ -256,20 +307,23 @@ def _call_openrouter(content: str, model: str) -> str:
         },
         timeout=55,
     )
+
+
+def _parse_chat(name: str, r) -> str:
     if r.status_code >= 400:
-        raise LlmError(f"openrouter HTTP {r.status_code}: {r.text[:300]}")
+        raise LlmError(f"{name} HTTP {r.status_code}: {r.text[:300]}")
     data = r.json()
     if data.get("error"):
-        raise LlmError(f"openrouter error: {str(data['error'])[:300]}")
+        raise LlmError(f"{name} error: {str(data['error'])[:300]}")
     choices = data.get("choices") or []
     if not choices:
-        raise LlmError("openrouter returned no answer")
+        raise LlmError(f"{name} returned no answer")
     finish = choices[0].get("finish_reason")
     if finish == "length":
-        raise LlmError("openrouter stopped early: answer too long")
+        raise LlmError(f"{name} stopped early: answer too long")
     text = (choices[0].get("message") or {}).get("content") or ""
     if not text.strip():
-        raise LlmError("openrouter returned an empty answer")
+        raise LlmError(f"{name} returned an empty answer")
     return text
 
 
@@ -287,6 +341,8 @@ def _call_anthropic(content: str, model: str) -> str:
 def _call(view: dict[str, Any], lang: str, feedback: str | None = None) -> str:
     prov = provider()
     content = _prompt(view, lang, feedback)
+    if prov == "groq":
+        return _call_groq(content, model_name(prov))
     if prov == "openrouter":
         return _call_openrouter(content, model_name(prov))
     if prov == "gemini":

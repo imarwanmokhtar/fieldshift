@@ -291,3 +291,98 @@ def test_openrouter_request_and_parse(monkeypatch):
         429, text='{"error":{"message":"Rate limit exceeded: free-models-per-day"}}', request=httpx.Request("POST", url)))
     out = llm.narrate(pack, "ar")
     assert out.source == "template" and "429" in out.fallback_reason
+
+
+def test_groq_request(monkeypatch):
+    import json as _json
+    import httpx
+    import app.llm as llm
+    monkeypatch.setattr(llm, "settings", type("S", (), {
+        "LLM_PROVIDER": "", "GROQ_API_KEY": "gsk-test", "OPENROUTER_API_KEY": "or-key", "GEMINI_API_KEY": "",
+        "ANTHROPIC_API_KEY": "", "LLM_MODEL": ""})())
+    monkeypatch.setattr(llm.cache, "get", lambda *a, **k: None)
+    monkeypatch.setattr(llm.cache, "put", lambda *a, **k: None)
+    # Groq comes first when no provider is chosen explicitly.
+    assert llm.provider() == "groq" and llm.model_name("groq") == "openai/gpt-oss-120b"
+    pack, _ = analyze_answers(ANSWERS, "en")
+    seen = {}
+
+    def fake_post(url, headers, json, timeout):
+        seen.update(url=url, headers=headers, body=json)
+        reply = {"overview": "We compared the options.", "reminder": "Check with an agronomist.", "strategies": [
+            {"id": s.id, "summary": "Summary.", "why": "w", "evidence": [], "benefits": [], "gaps": [], "risks": []}
+            for s in pack.strategies]}
+        return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {
+            "content": _json.dumps(reply)}}]}, request=httpx.Request("POST", url))
+    monkeypatch.setattr(httpx, "post", fake_post)
+    out = llm.narrate(pack, "en")
+    assert out.source == "llm"
+    assert seen["url"] == "https://api.groq.com/openai/v1/chat/completions"
+    assert seen["headers"]["Authorization"] == "Bearer gsk-test"
+    assert "HTTP-Referer" not in seen["headers"]
+    assert seen["body"]["model"] == "openai/gpt-oss-120b"
+
+
+def test_short_rate_limit_is_retried_once(monkeypatch):
+    import httpx
+    import app.llm as llm
+    monkeypatch.setattr(llm.time, "sleep", lambda s: None)
+    calls = []
+
+    def fake_post(url, headers, json, timeout):
+        calls.append(1)
+        if len(calls) == 1:
+            return httpx.Response(429, text='{"error":{"message":"Please try again in 4.5s."}}',
+                                  request=httpx.Request("POST", url))
+        return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {"content": "{}"}}]},
+                              request=httpx.Request("POST", url))
+    monkeypatch.setattr(httpx, "post", fake_post)
+    assert llm._call_openai_compatible("groq", llm.GROQ_URL, "k", "hi", "m") == "{}"
+    assert len(calls) == 2
+
+    # A long wait (e.g. a daily limit) is not retried.
+    calls.clear()
+    monkeypatch.setattr(httpx, "post", lambda url, headers, json, timeout: (calls.append(1), httpx.Response(
+        429, headers={"retry-after": "3600"}, text="{}", request=httpx.Request("POST", url)))[1])
+    try:
+        llm._call_openai_compatible("groq", llm.GROQ_URL, "k", "hi", "m")
+        raise AssertionError("expected LlmError")
+    except llm.LlmError as exc:
+        assert "429" in str(exc)
+    assert len(calls) == 1
+
+
+def test_practice_option_saves_water_with_same_crops():
+    pack, _ = analyze_answers(ANSWERS, "en")
+    by = {s.kind: s for s in pack.strategies}
+    assert "practice" in by
+    cur, pr = by["current"], by["practice"]
+    assert [sl.crop for sl in pr.slots] == [sl.crop for sl in cur.slots]
+    assert pr.practices and pr.changes_from_current == 0
+    assert pr.metrics["water_m3_per_feddan_year"] < cur.metrics["water_m3_per_feddan_year"]
+    assert pr.scores["water"] >= cur.scores["water"]
+    assert any(g.code == "practice_values_unverified" for g in pr.gaps)
+    assert pr.confidence_score < cur.confidence_score or cur.confidence_score <= 5
+
+
+def test_practice_uses_low_end_of_range():
+    from app.practices import PRACTICES, water_factors
+    f = water_factors(["laser_leveling", "raised_beds"], {"wheat", "rice"})
+    lo_l = PRACTICES["laser_leveling"]["water_saving_pct"][0] / 100
+    lo_b = PRACTICES["raised_beds"]["water_saving_pct"][0] / 100
+    assert abs(f["rice"] - (1 - lo_l)) < 1e-9
+    assert abs(f["wheat"] - (1 - lo_l) * (1 - lo_b)) < 1e-9
+
+
+def test_practice_rules_drip_and_salt():
+    from app.practices import applicable_practices
+    from app.schemas import FarmProfile
+    base = dict(lat=31.0, lng=31.4, area_ha=1.0)
+    drip = FarmProfile(**base, irrigation_method="drip")
+    ids, _ = applicable_practices(drip, {"wheat", "rice"}, 0)
+    assert ids == ["awd_rice"]                      # levelling and beds are for surface irrigation only
+    flood = FarmProfile(**base, irrigation_method="flood")
+    ids, skipped = applicable_practices(flood, {"rice"}, 1)
+    assert "awd_rice" not in ids and skipped == ["awd_rice"]
+    ids, _ = applicable_practices(flood, {"rice"}, 0)
+    assert set(ids) == {"laser_leveling", "awd_rice"}

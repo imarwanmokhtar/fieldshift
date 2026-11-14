@@ -38,11 +38,15 @@ export async function POST(request: Request) {
     return Response.json({ error: "profile_incomplete" }, { status: 400 });
   }
 
-  // Re-use a run that is already in progress (double clicks, refreshes).
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  // Re-use a run that is really still in progress (double clicks, refreshes).
+  // A pending row the engine never picked up within a minute, or a running row
+  // with no progress for 3 minutes, is stuck: drop it and start a fresh run.
+  // (The results page uses the same limits to show its "stuck" message.)
+  const now = Date.now();
+  const fiveMinutesAgo = new Date(now - 5 * 60 * 1000).toISOString();
   const { data: active } = await supabase
     .from("analyses")
-    .select("id")
+    .select("id,status,created_at,updated_at")
     .eq("user_id", user.id)
     .eq("lang", lang)
     .in("status", ["pending", "running"])
@@ -50,7 +54,16 @@ export async function POST(request: Request) {
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (active) return Response.json({ id: active.id });
+  if (active) {
+    const alive =
+      active.status === "pending"
+        ? now - Date.parse(active.created_at) < 60_000
+        : now - Date.parse(active.updated_at ?? active.created_at) < 180_000;
+    if (alive) return Response.json({ id: active.id });
+    if (active.status === "pending") {
+      await supabase.from("analyses").delete().eq("id", active.id);
+    }
+  }
 
   const { data: analysis, error } = await supabase
     .from("analyses")
