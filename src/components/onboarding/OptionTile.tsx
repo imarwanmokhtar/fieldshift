@@ -30,6 +30,7 @@ export function OptionTile({
     return (
         <button
             type="button"
+            data-option-tile
             onClick={onSelect}
             disabled={disabled}
             className={cn(
@@ -39,7 +40,8 @@ export function OptionTile({
                 "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
                 "motion-reduce:transition-none",
                 "disabled:pointer-events-none disabled:opacity-50",
-                "focus:outline-none focus-visible:ring-4 focus-visible:ring-ink",
+                // An outline, not a ring: the RTL shadow rule replaces box-shadow, which would hide a ring.
+                "outline-none focus-visible:outline-solid focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-ink",
                 isSelected
                     ? "bg-green-dark text-paper shadow-[6px_6px_0_0_#0a0a0a]"
                     : "bg-green-light text-ink shadow-[6px_6px_0_0_#0a0a0a] hover:shadow-[8px_8px_0_0_#0a0a0a]",

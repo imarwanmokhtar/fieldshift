@@ -99,11 +99,26 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
     // links and on controls marked data-enter-native (Back, Skip). On answer tiles it
     // also means Next, so it never un-ticks a choice; Space still selects a tile.
     // Backspace = Back, except while typing in a field (there it deletes text).
+    // Arrow up/down = move between answer tiles (Space selects the focused tile).
     useEffect(() => {
         if (!onQuestion) return;
         function onKeyDown(e: KeyboardEvent) {
             if (e.repeat || e.isComposing || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
             const target = e.target as HTMLElement | null;
+            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                if (target?.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])")) return;
+                const tiles = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-option-tile]:not(:disabled)"));
+                if (tiles.length === 0) return;
+                e.preventDefault(); // move between answers instead of scrolling the page
+                const at = tiles.indexOf(document.activeElement as HTMLButtonElement);
+                const step = e.key === "ArrowDown" ? 1 : -1;
+                const next = at === -1
+                    ? (step === 1 ? 0 : tiles.length - 1)
+                    : (at + step + tiles.length) % tiles.length;
+                tiles[next].focus();
+                tiles[next].scrollIntoView({ block: "nearest" });
+                return;
+            }
             if (e.key === "Backspace") {
                 if (target?.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])")) return;
                 e.preventDefault();
@@ -297,8 +312,8 @@ export function OnboardingWizard({ locale, initialProfile, onComplete }: Onboard
                         {/* Keyboard shortcuts (handled by the keydown effect above) */}
                         <p className="mt-3 hidden text-center font-mono text-xs opacity-60 sm:block" data-kb-hint>
                             {locale === "ar"
-                                ? "Enter ↵ التالي · Backspace ⌫ رجوع"
-                                : "Enter ↵ Next · Backspace ⌫ Back"}
+                                ? "↑ ↓ تنقل بين الخيارات · Space اختيار · Enter ↵ التالي · Backspace ⌫ رجوع"
+                                : "↑ ↓ move · Space select · Enter ↵ Next · Backspace ⌫ Back"}
                         </p>
 
                         {/* Skip button for optional questions */}
